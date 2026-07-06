@@ -1,0 +1,45 @@
+/* ============================================================
+   Dizayn tokenlari — barcha rang, oraliq, radius va shriftlar.
+   Butun ilova shu o'zgaruvchilarga tayanadi.
+   ============================================================ */
+:root {
+  /* Sirtlar */
+  --bg: #090d15;
+  --panel: #0c111b;
+  --card: #111a29;
+  --card-2: #0e1623;
+  --line: #1e2a44;
+  --line-soft: #172238;
+
+  /* Matn */
+  --text: #eef3fb;
+  --muted: #9aa9c2;
+  --faint: #64728c;
+
+  /* Brend / urg'u */
+  --accent: #3da9fc;
+  --accent-bg: #0d2a3a;
+  --accent-border: #114155;
+
+  /* Holat ranglari (svetofor) */
+  --ok: #22c97c;
+  --warn: #f4c430;
+  --fault: #ff8c2f;
+  --crit: #ff4d57;
+
+  /* Xarita foni */
+  --mapbg: #0b1018;
+
+  /* Radius */
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 13px;
+  --r-pill: 20px;
+
+  /* Shriftlar */
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+
+  /* Soyalar */
+  --shadow-pop: 0 12px 40px -10px #000;
+}

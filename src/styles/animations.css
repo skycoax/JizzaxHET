@@ -1,0 +1,211 @@
+/* ============================================================
+   JIZZAX HET — TO'LIQ ANIMATSIYA TIZIMI
+   ============================================================ */
+
+/* ── Asosiy timing o'zgaruvchilar ── */
+:root {
+  --dur-fast:   0.14s;
+  --dur-med:    0.24s;
+  --dur-slow:   0.42s;
+  --dur-xslow:  0.8s;
+  --spring:     cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out:   cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-in:    cubic-bezier(0.4, 0.0, 1, 1);
+  --bounce:     cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Kalit kadrlar ── */
+
+/* Panel ochilishi */
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Yuqoridan pastga */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Chapdan o'ngga */
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* O'ngdan chapga (toast) */
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(60px) scale(0.94); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(50px) scale(0.94); }
+}
+
+/* Yuqoridan kichrayib ko'rinish (kart) */
+@keyframes cardPop {
+  from { opacity: 0; transform: scale(0.92) translateY(-6px); }
+  50%  { transform: scale(1.02); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Raqam yangilanishda chaqnash */
+@keyframes numFlash {
+  0%   { color: inherit; }
+  30%  { color: var(--accent); text-shadow: 0 0 12px var(--accent); }
+  100% { color: inherit; }
+}
+
+/* Avariya uchun kuchli puls */
+@keyframes alarmPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,77,87,0); }
+  50%       { box-shadow: 0 0 0 8px rgba(255,77,87,0.25); }
+}
+
+/* Nosozlik (fault) uchun o'rtacha puls */
+@keyframes faultPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,140,47,0); }
+  50%       { box-shadow: 0 0 0 6px rgba(255,140,47,0.2); }
+}
+
+/* Status yulduz chaqnash (online) */
+@keyframes onlineDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.7; transform: scale(0.9); }
+}
+
+/* Skeleton yuklash */
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position:  400px 0; }
+}
+
+/* Raqam kattalashish */
+@keyframes scaleIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* Jadval qatori kirib kelishi */
+@keyframes rowIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Progress bar to'lishi */
+@keyframes barFillAnim {
+  from { width: 0 !important; }
+}
+
+/* NavStrip indicator siljishi */
+@keyframes indicatorSlide {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Aylanish (spinner) */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Qizil breathing (kritik holat) */
+@keyframes critBreath {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 rgba(255,77,87,0); }
+  50%       { opacity: 0.85; box-shadow: 0 0 16px 4px rgba(255,77,87,0.3); }
+}
+
+/* Sariq breathing (ogohlantirish) */
+@keyframes warnBreath {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.8; }
+}
+
+/* Float (tuman overlay) */
+@keyframes floatUp {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)  scale(1); }
+}
+
+/* Kirish puls (login logo) */
+@keyframes logoPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(61,169,252,0); }
+  50%       { box-shadow: 0 0 0 12px rgba(61,169,252,0.15); }
+}
+
+/* Notif badge bounce */
+@keyframes badgeBounce {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.3); }
+  80%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* HUD karta puls (avariya bo'lganda) */
+@keyframes hudAlarm {
+  0%, 100% { border-color: rgba(255,77,87,0.5); }
+  50%       { border-color: rgba(255,77,87,1); box-shadow: 0 0 20px rgba(255,77,87,0.3); }
+}
+
+/* ============================================================
+   QOYILMALAR (Apply)
+   ============================================================ */
+
+/* Panel — har tab almashinishida */
+.vhost { animation: panelIn var(--dur-med) var(--spring); }
+
+/* Login sahifasi */
+.login-card { animation: cardPop 0.45s var(--spring); }
+.login-logo { animation: logoPulse 3s ease-in-out infinite; }
+
+/* Toast kirishi */
+.toast-item { animation: toastSlideIn 0.28s var(--spring) !important; }
+
+/* District overlays */
+.do-wrap { animation: floatUp 0.35s var(--spring); }
+
+/* Jadval qatorlari */
+.loss-row    { animation: rowIn var(--dur-med) var(--ease-out); }
+.rrow        { animation: rowIn var(--dur-fast) var(--ease-out); }
+.ap-row      { animation: rowIn 0.18s var(--ease-out); }
+
+/* Status nuqtalar */
+.status-dot-online   { animation: onlineDot 2.5s ease-in-out infinite; }
+.status-dot-offline  { animation: alarmPulse 1.2s ease-in-out infinite; }
+.status-dot-fault    { animation: faultPulse 1.6s ease-in-out infinite; }
+.status-dot-warning  { animation: warnBreath 2s ease-in-out infinite; }
+
+/* Skeleton */
+.sk {
+  background: linear-gradient(90deg, var(--card) 25%, var(--card-2) 50%, var(--card) 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: var(--r-md);
+}
+
+/* Loss bar to'lishi */
+.loss-bar-fill { animation: barFillAnim 0.8s var(--spring); }
+
+/* HUD karta — avariya bo'lganda */
+.sit-card.on[style*="--c:#ff4d57"],
+.sit-card.on[style*="--c:#ff8c2f"] {
+  animation: hudAlarm 1.8s ease-in-out infinite;
+}
+
+/* NavStrip badge */
+.nav-badge { animation: badgeBounce 0.4s var(--bounce); }
+
+/* Admin panel tafsilot */
+.pd-wrap { animation: panelIn var(--dur-med) var(--spring); }
+.pf-wrap { animation: panelIn var(--dur-med) var(--spring); }
+.pd-section { animation: slideRight var(--dur-med) var(--ease-out); }
+
+/* Bildirishnoma badge (TopBar) */
+.adm-tab .cnt { animation: badgeBounce 0.4s var(--bounce); }
+
+/* Spinner */
+.spinner, .lf-spinner { animation: spin 0.7s linear infinite; }
+
+/* Yuklash */
+.adm-loading .spinner { animation: spin 0.7s linear infinite; }
