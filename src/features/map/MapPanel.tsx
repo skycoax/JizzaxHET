@@ -211,6 +211,15 @@ export function MapPanel({
     return () => document.removeEventListener('fullscreenchange', fn);
   }, []);
 
+  // Konteyner o'lchami o'zgarganda (masalan yon panel yig'ilganda) — xaritani moslash
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => mapRef.current?.resize());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const toggleFocus = (f: SitFocus) => {
     const next = focus === f ? null : f;
     setFocus(next);

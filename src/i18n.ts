@@ -61,7 +61,22 @@ const uz: Record<string, string> = {
   "alarm.onMap": "Xaritada ko'rsatish",
 
   "nav.monitor": "Monitoring markazi",
+  "nav.readings": "Ko'rsatkichlar",
+  "nav.events": "Hodisalar",
+  "nav.load": "Yuklama",
+  "nav.losses": "Yo'qotishlar",
   "nav.registry": "Qurilmalar reyestri",
+  "nav.admin": "Ma'muriyat",
+
+  "nav.section.operations": "Operatsion",
+  "nav.section.analytics": "Tahlil",
+  "nav.section.system": "Tizim",
+
+  "side.collapse": "Yig'ish",
+  "side.expand": "Yoyish",
+  "side.themeDark": "Tungi rejim",
+  "side.themeLight": "Kunduzgi rejim",
+  "side.settings": "Sozlamalar",
 
   "sit.title": "Situatsion kuzatuv",
   "sit.battery": "Batareya quvvatidagi TP",

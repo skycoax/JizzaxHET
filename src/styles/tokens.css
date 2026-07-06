@@ -1,8 +1,15 @@
 /* ============================================================
    Dizayn tokenlari — barcha rang, oraliq, radius va shriftlar.
    Butun ilova shu o'zgaruvchilarga tayanadi.
+
+   Ikki mavzu: dark (default) va light. <html data-theme="..."> orqali
+   almashadi. `[data-theme]` atribut selektori bo'lgani uchun uni ichki
+   elementga ham qo'yish mumkin — masalan xarita/toast doim dark qoladi.
    ============================================================ */
-:root {
+
+:root,
+:root[data-theme="dark"],
+[data-theme="dark"] {
   /* Sirtlar */
   --bg: #090d15;
   --panel: #0c111b;
@@ -30,6 +37,18 @@
   /* Xarita foni */
   --mapbg: #0b1018;
 
+  /* Semantik yuzalar (mavzu bilan almashadigan qattiq ranglar o'rniga) */
+  --th-bg: #0b1220;          /* jadval sarlavhalari */
+  --row-hover: #0e1624;      /* jadval/ro'yxat qatori hover */
+  --row-active: #0d1a2b;     /* tanlangan qator */
+  --hover-2: #13203a;        /* kuchliroq hover (sozlama qatorlari) */
+  --line-hover: #2c3d5c;     /* hover chizig'i */
+  --accent-hover: #103246;   /* urg'uli tugma hover foni */
+  --accent-strong: #2a96f0;  /* to'ldirilgan urg'u tugma hover */
+  --pop-bg: #0e1724;         /* popover / sozlamalar paneli */
+  --scroll: #22304a;         /* scrollbar thumb */
+  --on-accent: #ffffff;      /* urg'u ustidagi matn */
+
   /* Radius */
   --r-sm: 7px;
   --r-md: 10px;
@@ -42,4 +61,51 @@
 
   /* Soyalar */
   --shadow-pop: 0 12px 40px -10px #000;
+
+  color-scheme: dark;
+}
+
+:root[data-theme="light"],
+[data-theme="light"] {
+  /* Sirtlar — sovuq oq kanvas, oq panellar */
+  --bg: #e8ecf3;
+  --panel: #ffffff;
+  --card: #f4f7fb;
+  --card-2: #eef2f8;
+  --line: #d6dde9;
+  --line-soft: #e7ebf3;
+
+  /* Matn — quyuq shifer */
+  --text: #101a2c;
+  --muted: #55617a;
+  --faint: #8590a4;
+
+  /* Brend / urg'u — oq fonda kontrast uchun biroz quyuqroq */
+  --accent: #0f7fd1;
+  --accent-bg: #e4f0fb;
+  --accent-border: #b3d8f4;
+
+  /* Holat ranglari — och fonda o'qiladigan darajada quyuqlashtirilgan */
+  --ok: #0e9e63;
+  --warn: #b7830a;
+  --fault: #d96a15;
+  --crit: #dc2f3b;
+
+  --mapbg: #0b1018;
+
+  /* Semantik yuzalar */
+  --th-bg: #eef2f8;
+  --row-hover: #eef4fb;
+  --row-active: #dcebfb;
+  --hover-2: #eaf0f8;
+  --line-hover: #bcc7d8;
+  --accent-hover: #d5e9fb;
+  --accent-strong: #0b6fbb;
+  --pop-bg: #ffffff;
+  --scroll: #c2ccdb;
+  --on-accent: #ffffff;
+
+  --shadow-pop: 0 12px 40px -14px rgba(20, 32, 56, .30);
+
+  color-scheme: light;
 }

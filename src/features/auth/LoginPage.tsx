@@ -50,7 +50,7 @@ export function LoginPage({ defaultUrl, onLogin, onDemo }: Props) {
   };
 
   return (
-    <div className="login-bg">
+    <div className="login-bg" data-theme="dark">
       <div className="login-card">
         {/* Logo */}
         <div className="login-logo">

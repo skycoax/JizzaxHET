@@ -106,7 +106,7 @@ export function AlarmToastContainer({ notifications, onDismiss, onShow }: {
 }) {
   if (notifications.length === 0) return null;
   return (
-    <div className="toast-container">
+    <div className="toast-container" data-theme="dark">
       {notifications.slice(0, 6).map(n => (
         <ToastItem key={n.id} n={n} onDismiss={onDismiss} onShow={onShow}/>
       ))}

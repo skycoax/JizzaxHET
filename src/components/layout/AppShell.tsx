@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { TopBar } from '@/components/layout/TopBar';
-import { NavStrip, type AppView } from '@/components/layout/NavStrip';
+import { useHashRoute } from '@/hooks/useHashRoute';
+import { useTheme } from '@/hooks/useTheme';
+import { Sidebar, type AppSettings } from '@/components/layout/Sidebar';
 import { MapPanel } from '@/features/map/MapPanel';
 import { DeviceRegistry } from '@/features/devices/DeviceRegistry';
 import { ReadingsPanel } from '@/features/readings/ReadingsPanel';
@@ -13,11 +14,9 @@ import { AlarmToastContainer, deviceToNotification, type AlarmNotification } fro
 import { playAlarmBeep } from '@/lib/sound';
 import { t } from '@/i18n';
 import type { AuthUser } from '@/hooks/useAuth';
-import type { AppSettings } from '@/components/layout/TopBar';
 import type { BotConfig } from '@/types';
 import { loadBotConfig } from '@/features/admin/personStore';
 import type { Device } from '@/types';
-import { useRef, useCallback } from 'react';
 
 function LoadingScreen() {
   return (
@@ -43,17 +42,23 @@ interface Props {
 
 export function AppShell({ user, demoMode, onLogout }: Props) {
   const snapshot = useDashboardData();
-  const [view,          setView         ] = useState<AppView>('monitor');
+  const [view, setView] = useHashRoute();
+  const { theme, toggleTheme } = useTheme();
   const [soundOn,       setSoundOn      ] = useState(false);
   const [selectedId,    setSelectedId   ] = useState<string | null>(null);
   const [settings,      setSettings     ] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [notifications, setNotifications] = useState<AlarmNotification[]>([]);
   const notifiedRef = useRef<Set<string>>(new Set());
 
+  // Joriy ko'rinishni ref orqali kuzatamiz — avariya callback'ida eskirgan
+  // qiymat ishlatilmasligi uchun.
+  const viewRef = useRef(view);
+  viewRef.current = view;
+
   const showOnMap = useCallback((id: string) => {
     setView('monitor');
     setSelectedId(id);
-  }, []);
+  }, [setView]);
 
   const sendToBotServer = useCallback(async (alarm: AlarmNotification) => {
     const cfg: BotConfig = loadBotConfig();
@@ -76,7 +81,11 @@ export function AppShell({ user, demoMode, onLogout }: Props) {
     if (settings.showNotifications) {
       setNotifications(prev => [notif, ...prev].slice(0, 8));
     }
-    if (settings.autoFlyToAlarm) { setView('monitor'); setSelectedId(device.id); }
+    // Avtomatik xaritada ko'rsatish — FAQAT foydalanuvchi monitoring
+    // sahifasida bo'lsa. Boshqa sahifada bo'lsa uni bezovta qilmaymiz.
+    if (settings.autoFlyToAlarm && viewRef.current === 'monitor') {
+      setSelectedId(device.id);
+    }
     if (soundOn) playAlarmBeep();
     sendToBotServer(notif);
   }, [settings, soundOn, sendToBotServer]);
@@ -91,8 +100,10 @@ export function AppShell({ user, demoMode, onLogout }: Props) {
 
   return (
     <div className="app">
-      <TopBar
-        systemStatus={kpis.systemStatus}
+      <Sidebar
+        view={view}
+        onChange={setView}
+        kpis={kpis}
         soundOn={soundOn}
         onToggleSound={() => setSoundOn(s => !s)}
         settings={settings}
@@ -100,25 +111,29 @@ export function AppShell({ user, demoMode, onLogout }: Props) {
         user={user}
         demoMode={demoMode}
         onLogout={onLogout}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
-      <NavStrip view={view} onChange={setView} kpis={kpis}/>
 
-      <div className={`vhost ${view === 'monitor' ? '' : 'hidden'}`}>
-        <MapPanel
-          devices={devices} districts={districts} kpis={kpis}
-          soundOn={soundOn} selectedId={selectedId} onSelect={setSelectedId}
-          active={view === 'monitor'}
-          showDistrictStats={settings.showDistrictStats}
-          onNewAlarm={handleNewAlarm}
-        />
-      </div>
+      <main className="app-main">
+        {/* Monitoring xaritasi doim dark rejimda — geofazoviy displey uchun */}
+        <div className={`vhost ${view === 'monitor' ? '' : 'hidden'}`} data-theme="dark">
+          <MapPanel
+            devices={devices} districts={districts} kpis={kpis}
+            soundOn={soundOn} selectedId={selectedId} onSelect={setSelectedId}
+            active={view === 'monitor'}
+            showDistrictStats={settings.showDistrictStats}
+            onNewAlarm={handleNewAlarm}
+          />
+        </div>
 
-      {view === 'readings'  && <div className="vhost"><ReadingsPanel devices={devices} readings={readings}/></div>}
-      {view === 'events'    && <div className="vhost"><EventsPanel events={events} onSelectDevice={showOnMap}/></div>}
-      {view === 'load'      && <div className="vhost"><LoadPanel loadProfile={loadProfile} kpis={kpis}/></div>}
-      {view === 'losses'    && <div className="vhost"><LossesPanel devices={devices}/></div>}
-      {view === 'registry'  && <div className="vhost"><DeviceRegistry devices={devices} onShowOnMap={showOnMap}/></div>}
-      {view === 'admin'     && <div className="vhost"><AdminPanel/></div>}
+        {view === 'readings'  && <div className="vhost"><ReadingsPanel devices={devices} readings={readings}/></div>}
+        {view === 'events'    && <div className="vhost"><EventsPanel events={events} onSelectDevice={showOnMap}/></div>}
+        {view === 'load'      && <div className="vhost"><LoadPanel loadProfile={loadProfile} kpis={kpis}/></div>}
+        {view === 'losses'    && <div className="vhost"><LossesPanel devices={devices}/></div>}
+        {view === 'registry'  && <div className="vhost"><DeviceRegistry devices={devices} onShowOnMap={showOnMap}/></div>}
+        {view === 'admin'     && <div className="vhost"><AdminPanel/></div>}
+      </main>
 
       {settings.showNotifications && (
         <AlarmToastContainer
