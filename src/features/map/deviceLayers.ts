@@ -55,34 +55,52 @@ function drawTp(status: string): HTMLCanvasElement {
   return c;
 }
 
+/** BZ-n — tadbirkorlik: romb ichida portfel glifi. */
 function drawBiz(status: string): HTMLCanvasElement {
-  const S = 21 * PR;
+  const S = 23 * PR;
   const [c, ctx] = canvasCtx(S);
-  ctx.translate(S / 2, S / 2);
-  ctx.rotate(Math.PI / 4);
-  const sq = (s: number, color: string) => {
-    ctx.fillStyle = color;
-    ctx.fillRect(-s / 2, -s / 2, s, s);
+  const cx = S / 2, cy = S / 2;
+  const dia = (r: number, color: string) => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r, cy);
+    ctx.lineTo(cx, cy + r); ctx.lineTo(cx - r, cy);
+    ctx.closePath(); ctx.fillStyle = color; ctx.fill();
   };
-  const side = S / Math.SQRT2;
-  sq(side, DARK);
-  sq(side - 3 * PR, WHITE);
-  sq(side - 6.5 * PR, STATUS_FILL[status]);
+  dia(11.2 * PR, DARK);
+  dia(9.6 * PR, WHITE);
+  dia(8.0 * PR, STATUS_FILL[status]);
+  // Portfel: tutqich + korpus + ochilish chizig'i
+  ctx.strokeStyle = DARK; ctx.lineWidth = 1.3 * PR; ctx.lineJoin = 'round';
+  ctx.strokeRect(cx - 1.7 * PR, cy - 4.4 * PR, 3.4 * PR, 2.2 * PR);
+  ctx.fillStyle = DARK;
+  rr(ctx, cx - 3.6 * PR, cy - 2.4 * PR, 7.2 * PR, 5.2 * PR, 1.1 * PR); ctx.fill();
+  ctx.fillStyle = STATUS_FILL[status];
+  ctx.fillRect(cx - 3.6 * PR, cy - 0.4 * PR, 7.2 * PR, 1.0 * PR);
   return c;
 }
 
+/** Uy silueti yo'li (tom + korpus); w — yarim kenglik. */
+function housePath(ctx: CanvasRenderingContext2D, cx: number, cy: number, w: number) {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - w * 1.15);
+  ctx.lineTo(cx + w, cy - w * 0.15);
+  ctx.lineTo(cx + w, cy + w * 1.05);
+  ctx.lineTo(cx - w, cy + w * 1.05);
+  ctx.lineTo(cx - w, cy - w * 0.15);
+  ctx.closePath();
+}
+
+/** M-n — maishiy: uy (dom) silueti, eshik bilan. */
 function drawHouse(status: string): HTMLCanvasElement {
-  const S = 14 * PR;
+  const S = 18 * PR;
   const [c, ctx] = canvasCtx(S);
-  const dot = (r: number, color: string) => {
-    ctx.beginPath();
-    ctx.arc(S / 2, S / 2, r, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
-  };
-  dot(S / 2, DARK);
-  dot(S / 2 - 1.4 * PR, WHITE);
-  dot(S / 2 - 3.2 * PR, STATUS_FILL[status]);
+  const cx = S / 2, cy = S / 2 + 0.4 * PR;
+  housePath(ctx, cx, cy, 7.2 * PR); ctx.fillStyle = DARK;  ctx.fill();
+  housePath(ctx, cx, cy, 6.1 * PR); ctx.fillStyle = WHITE; ctx.fill();
+  housePath(ctx, cx, cy, 4.9 * PR); ctx.fillStyle = STATUS_FILL[status]; ctx.fill();
+  // Eshik
+  ctx.fillStyle = DARK;
+  ctx.fillRect(cx - 1.2 * PR, cy + 1.75 * PR, 2.4 * PR, 3.4 * PR);
   return c;
 }
 
