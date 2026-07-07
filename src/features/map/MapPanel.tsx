@@ -765,7 +765,13 @@ function SituationHud({ kpis, focus, onToggle, devices, onPick }: {
   kpis: DashboardKpis; focus: SitFocus; onToggle:(f:SitFocus)=>void;
   devices: Device[]; onPick:(id:string)=>void;
 }) {
-  const [open, setOpen] = useState(true);
+  // Default — yig'ilgan (bir qator chip): burchakni band qilmaydi
+  const [open, setOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem('jhet-hud-open') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('jhet-hud-open', open ? '1' : '0'); } catch { /* ignore */ }
+  }, [open]);
   const focusList = focus ? devicesForFocus(devices, focus) : [];
   const batteryCount  = useCounter(kpis.batteryTps);
   const overloadCount = useCounter(kpis.overloadedTps);
@@ -783,14 +789,30 @@ function SituationHud({ kpis, focus, onToggle, devices, onPick }: {
     { f:'theft', c:'#b06bff', n:theftCount, label:t('sit.theft'),
       icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 3.5 7.5v5c0 4.6 3.6 7.6 8.5 8.5 4.9-.9 8.5-3.9 8.5-8.5v-5L12 3z"/><line x1="8" y1="9" x2="16" y2="15"/></svg> },
   ];
+  const focusCard = cards.find(c => c.f === focus);
+  const subList = (c: string) => (
+    <div className="sit-sub" style={{'--c':c} as React.CSSProperties}>
+      {focusList.length>0 ? focusList.map(d => (
+        <div key={d.id} className="row" onClick={() => onPick(d.id)}>
+          <span className="nm2"><i/> {d.id} · {d.name}</span>
+          <span className="ds">{stripDistrict(d.district)}</span>
+        </div>
+      )) : (
+        <div className="sit-sub-empty">Ushbu turkumda TM yo‘q</div>
+      )}
+    </div>
+  );
+
   return (
     <div className={`sit-hud${open ? '' : ' mini'}`}>
-      <button className="sit-toggle" onClick={() => setOpen(o => !o)} aria-expanded={open} title={open ? 'Yig‘ish' : 'Yoyish'}>
-        <span className="sit-toggle-lbl">{t('sit.title')}</span>
-        <svg className="sit-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="18 15 12 9 6 15"/>
-        </svg>
-      </button>
+      {open && (
+        <button className="sit-toggle" onClick={() => setOpen(false)} aria-expanded title="Yig‘ish">
+          <span className="sit-toggle-lbl">{t('sit.title')}</span>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
+      )}
       <div className="sit-cards">
         {cards.map(card => (
           <div key={card.f} className="sit-slot">
@@ -806,21 +828,19 @@ function SituationHud({ kpis, focus, onToggle, devices, onPick }: {
                 <span className="l">{card.label}</span>
               </span>
             </button>
-            {open && focus===card.f && (
-              <div className="sit-sub" style={{'--c':card.c} as React.CSSProperties}>
-                {focusList.length>0 ? focusList.map(d => (
-                  <div key={d.id} className="row" onClick={() => onPick(d.id)}>
-                    <span className="nm2"><i/> {d.id} · {d.name}</span>
-                    <span className="ds">{stripDistrict(d.district)}</span>
-                  </div>
-                )) : (
-                  <div className="sit-sub-empty">Ushbu turkumda TM yo‘q</div>
-                )}
-              </div>
-            )}
+            {open && focus===card.f && subList(card.c)}
           </div>
         ))}
+        {!open && (
+          <button className="sit-expand" onClick={() => setOpen(true)} title={t('sit.title')} aria-label="Yoyish">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+        )}
       </div>
+      {/* Mini rejimda tanlangan turkum ro'yxati — qator ostida */}
+      {!open && focusCard && subList(focusCard.c)}
     </div>
   );
 }
