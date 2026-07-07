@@ -495,34 +495,12 @@ export function MapPanel({
       <div ref={containerRef} className="map-root" />
       <SituationHud kpis={kpis} focus={focus} onToggle={toggleFocus} devices={devices} onPick={onSelect}/>
       <div className="map-ctrl tr">
-        <div className="map-seg">
-          <button className={styleKey==='cyber' ?'on':''} onClick={() => setStyleKey('cyber')}>Cyber 3D</button>
-          <button className={styleKey==='sat'   ?'on':''} onClick={() => setStyleKey('sat')}>Sun'iy yo'ldosh</button>
-          <button className={styleKey==='light' ?'on':''} onClick={() => setStyleKey('light')}>Yorug'</button>
-        </div>
-        <div className="map-seg" role="group" aria-label="Qurilma turlari">
-          {([
-            { ty: 'concentrator', l: 'TM',      full: 'TM konsentratorlar' },
-            { ty: 'business',     l: 'Biznes',  full: 'Tadbirkorlik obyektlari' },
-            { ty: 'household',    l: 'Maishiy', full: 'Maishiy abonentlar' },
-          ] as { ty: DeviceType; l: string; full: string }[]).map(x => (
-            <button
-              key={x.ty}
-              className={typesOn[x.ty] ? 'on' : 'off'}
-              onClick={() => toggleType(x.ty)}
-              title={`${x.full} — ko'rsatish / yashirish`}
-              aria-pressed={typesOn[x.ty]}
-            >
-              {x.l}
-            </button>
-          ))}
-        </div>
-        <div className="map-seg" role="group" aria-label="Tuman rangi">
-          <button className={distMode==='status'?'on':''} onClick={() => setDistMode('status')} title="Tuman rangi — eng yomon holat bo'yicha">Holat</button>
-          <button className={distMode==='loss'  ?'on':''} onClick={() => setDistMode('loss')}   title="Tuman rangi — o'rtacha yo'qotish % bo'yicha">Yo'qotish</button>
-          <button className={distMode==='avail' ?'on':''} onClick={() => setDistMode('avail')}  title="Tuman rangi — tarmoq mavjudligi bo'yicha">Mavjudlik</button>
-        </div>
         <div style={{ display:'flex', gap:8 }}>
+          <LayersMenu
+            styleKey={styleKey} onStyle={setStyleKey}
+            typesOn={typesOn} onType={toggleType}
+            distMode={distMode} onDistMode={setDistMode}
+          />
           <button className={`map-btn ${pbOn?'on':''}`} onClick={pbOn ? pbStop : pbStart} title="Oxirgi 24 soat hodisalarini vaqt lentasida ko'rish">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>
@@ -631,6 +609,82 @@ function PlaybackBar({ t, from, to, playing, speed, count, onSeek, onPlay, onSpe
       </div>
       <span className="pb-count mono" title="Joriy 60 daqiqalik oynadagi hodisalar">{count} hodisa</span>
       <button className="pb-x" onClick={onClose} aria-label="Yopish">&#x2715;</button>
+    </div>
+  );
+}
+
+/* ========================================================
+   "Xarita" menyusi — uslub, qurilma turlari va tuman rangi
+   bitta ixcham dropdown ichida (o'ng burchak yengil qoladi)
+   ======================================================== */
+function LayersMenu({ styleKey, onStyle, typesOn, onType, distMode, onDistMode }: {
+  styleKey: MapStyleKey;
+  onStyle: (k: MapStyleKey) => void;
+  typesOn: Record<DeviceType, boolean>;
+  onType: (ty: DeviceType) => void;
+  distMode: DistrictColorMode;
+  onDistMode: (m: DistrictColorMode) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+
+  const check = (
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+
+  return (
+    <div className="mtc-dd" ref={ref}>
+      <button className={`map-btn${open ? ' on' : ''}`} onClick={() => setOpen(o => !o)} aria-expanded={open} title="Xarita uslubi, qatlamlar va tuman rangi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+        </svg>
+        Xarita
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="mtc-menu mlp-menu">
+          <div className="mlp-title">Xarita uslubi</div>
+          {([
+            { k: 'cyber', l: 'Cyber 3D' },
+            { k: 'sat',   l: "Sun'iy yo'ldosh" },
+            { k: 'light', l: "Yorug'" },
+          ] as { k: MapStyleKey; l: string }[]).map(s => (
+            <button key={s.k} className={`mtc-item mlp-row${styleKey === s.k ? ' on' : ''}`} onClick={() => onStyle(s.k)}>
+              <span>{s.l}</span>{styleKey === s.k && check}
+            </button>
+          ))}
+          <div className="mlp-title">Qurilma turlari</div>
+          {([
+            { ty: 'concentrator', l: 'TM konsentratorlar' },
+            { ty: 'business',     l: 'Tadbirkorlik obyektlari' },
+            { ty: 'household',    l: 'Maishiy abonentlar' },
+          ] as { ty: DeviceType; l: string }[]).map(x => (
+            <button key={x.ty} className={`mtc-item mlp-row${typesOn[x.ty] ? ' on' : ''}`} onClick={() => onType(x.ty)} aria-pressed={typesOn[x.ty]}>
+              <span>{x.l}</span>{typesOn[x.ty] && check}
+            </button>
+          ))}
+          <div className="mlp-title">Tuman rangi</div>
+          {([
+            { m: 'status', l: "Holat bo'yicha" },
+            { m: 'loss',   l: "Yo'qotish % bo'yicha" },
+            { m: 'avail',  l: "Mavjudlik bo'yicha" },
+          ] as { m: DistrictColorMode; l: string }[]).map(x => (
+            <button key={x.m} className={`mtc-item mlp-row${distMode === x.m ? ' on' : ''}`} onClick={() => onDistMode(x.m)}>
+              <span>{x.l}</span>{distMode === x.m && check}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

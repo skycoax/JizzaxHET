@@ -237,12 +237,6 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 /* overlay controls */
 .map-ctrl { position: absolute; z-index: 600; display: flex; flex-direction: column; gap: 8px; }
 .map-ctrl.tr { top: 12px; right: 12px; align-items: flex-end; }
-.map-seg { display: flex; background: var(--ov-bg); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; box-shadow: var(--shadow-pop); }
-.map-seg button { font-family: inherit; font-size: 11.5px; color: var(--muted); background: none; border: none; padding: 7px 11px; cursor: pointer; border-right: 1px solid var(--line); transition: .12s; white-space: nowrap; }
-.map-seg button:last-child { border-right: none; }
-.map-seg button:hover { color: var(--text); background: var(--hover-2); }
-.map-seg button.on { color: var(--accent); background: var(--accent-bg); }
-.map-seg button.off { color: var(--faint); text-decoration: line-through; }
 .map-btn { display: flex; align-items: center; gap: 7px; font-family: inherit; font-size: 11.5px; color: var(--muted); background: var(--ov-bg); border: 1px solid var(--line); border-radius: var(--r-md); padding: 7px 11px; cursor: pointer; box-shadow: var(--shadow-pop); transition: .12s; white-space: nowrap; }
 .map-btn:hover { color: var(--text); border-color: var(--line-hover); }
 .map-btn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
@@ -269,6 +263,14 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 .mtc-line1 { display: block; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mtc-line2 { display: block; font-size: 10.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mtc-empty { padding: 11px; font-size: 11.5px; color: var(--faint); text-align: center; }
+
+/* "Xarita" qatlamlar menyusi (o'ng burchak) */
+.mlp-menu { left: auto; right: 0; min-width: 232px; }
+.mlp-title { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--faint); padding: 8px 9px 4px; }
+.mlp-title:not(:first-child) { border-top: 1px solid var(--line-soft); margin-top: 5px; padding-top: 9px; }
+.mlp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mlp-row.on { color: var(--text); }
+.mlp-row.on svg { color: var(--accent); flex: 0 0 auto; }
 
 /* legend */
 .map-legend { position: absolute; left: 12px; bottom: 16px; z-index: 600; background: var(--ov-bg); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); overflow: hidden; backdrop-filter: blur(4px); }
