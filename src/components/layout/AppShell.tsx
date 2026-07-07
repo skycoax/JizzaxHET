@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useHashRoute } from '@/hooks/useHashRoute';
 import { useTheme } from '@/hooks/useTheme';
 import { Sidebar, type AppSettings } from '@/components/layout/Sidebar';
+import { CommandPalette } from '@/components/CommandPalette';
 import { MapPanel } from '@/features/map/MapPanel';
 import { DeviceRegistry } from '@/features/devices/DeviceRegistry';
 import { ReadingsPanel } from '@/features/readings/ReadingsPanel';
@@ -40,19 +41,38 @@ interface Props {
 }
 
 export function AppShell({ user, demoMode, onLogout }: Props) {
-  const snapshot = useDashboardData();
+  const { snapshot, fromCache } = useDashboardData();
   const [view, setView] = useHashRoute();
   const { theme, toggleTheme } = useTheme();
   const [soundOn,       setSoundOn      ] = useState(false);
   const [selectedId,    setSelectedId   ] = useState<string | null>(null);
   const [settings,      setSettings     ] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [notifications, setNotifications] = useState<AlarmNotification[]>([]);
+  const [paletteOpen,   setPaletteOpen  ] = useState(false);
+  const [gotoDistrict,  setGotoDistrict ] = useState<{ name: string; ts: number } | null>(null);
   const notifiedRef = useRef<Set<string>>(new Set());
 
   const showOnMap = useCallback((id: string) => {
     setView('monitor');
     setSelectedId(id);
   }, [setView]);
+
+  const showDistrict = useCallback((name: string) => {
+    setView('monitor');
+    setGotoDistrict({ name, ts: Date.now() });
+  }, [setView]);
+
+  // Ctrl+K — buyruqlar palitrasi
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen(o => !o);
+      }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, []);
 
   const sendToBotServer = useCallback(async (alarm: AlarmNotification) => {
     const cfg: BotConfig = loadBotConfig();
@@ -104,6 +124,8 @@ export function AppShell({ user, demoMode, onLogout }: Props) {
         onLogout={onLogout}
         theme={theme}
         onToggleTheme={toggleTheme}
+        dataTs={snapshot.generatedAt}
+        fromCache={fromCache}
       />
 
       <main className="app-main">
@@ -111,11 +133,13 @@ export function AppShell({ user, demoMode, onLogout }: Props) {
         <div className={`vhost ${view === 'monitor' ? '' : 'hidden'}`}>
           <MapPanel
             devices={devices} districts={districts} kpis={kpis}
+            events={events}
             soundOn={soundOn} selectedId={selectedId} onSelect={setSelectedId}
             active={view === 'monitor'}
             showDistrictStats={settings.showDistrictStats}
             onNewAlarm={handleNewAlarm}
             theme={theme}
+            gotoDistrict={gotoDistrict}
           />
         </div>
 
@@ -134,6 +158,17 @@ export function AppShell({ user, demoMode, onLogout }: Props) {
           onShow={showOnMap}
         />
       )}
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        devices={devices}
+        districts={districts}
+        currentView={view}
+        onView={v => { setView(v); setPaletteOpen(false); }}
+        onDevice={id => { showOnMap(id); setPaletteOpen(false); }}
+        onDistrict={name => { showDistrict(name); setPaletteOpen(false); }}
+      />
     </div>
   );
 }

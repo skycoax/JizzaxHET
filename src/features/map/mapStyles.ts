@@ -18,10 +18,27 @@ const CARTO_LIGHT = ['https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabe
 const ESRI_SAT    = ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
 const ESRI_HYBRID = ['https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}'];
 
+// Oflayn rejim: localStorage'da lokal tayl-server ko'rsatilgan bo'lsa,
+// barcha uslublar shu manbadan oladi (izolyatsiyalangan tarmoq uchun).
+const TILES_OVERRIDE_KEY = 'jhet-tiles-base';
+function overrideTiles(): string[] | null {
+  try {
+    const v = localStorage.getItem(TILES_OVERRIDE_KEY)?.trim();
+    if (!v) return null;
+    const tpl = v.includes('{z}') ? v : v.replace(/\/+$/, '') + '/{z}/{x}/{y}.png';
+    return [tpl];
+  } catch {
+    return null;
+  }
+}
+
 function base(key: MapStyleKey): StyleSpecification {
   const bgColor = key === 'cyber' ? '#05070e' : key === 'light' ? '#eaeef3' : '#151520';
 
-  const srcBase = key === 'sat'
+  const ov = overrideTiles();
+  const srcBase = ov
+    ? { tiles: ov, maxzoom: 19, attribution: 'Lokal tayl-server' }
+    : key === 'sat'
     ? { tiles: ESRI_SAT,    maxzoom: 18, attribution: 'Tiles &copy; Esri' }
     : key === 'light'
     ? { tiles: CARTO_LIGHT, maxzoom: 19, attribution: '&copy; OpenStreetMap, &copy; CARTO' }
@@ -32,7 +49,7 @@ function base(key: MapStyleKey): StyleSpecification {
     { id: 'base', type: 'raster',     source: 'base' }  as StyleSpecification['layers'][0],
   ];
 
-  if (key === 'sat') {
+  if (key === 'sat' && !ov) {
     // Sputnik rejimida yo'l/joy nomlari ustiga qo'shimcha o'tkazuvchan qatlam
     layers.push(
       { id: 'hybrid', type: 'raster', source: 'hybrid', paint: { 'raster-opacity': 0.6 } } as StyleSpecification['layers'][0],
@@ -43,7 +60,7 @@ function base(key: MapStyleKey): StyleSpecification {
     base: { type: 'raster', tiles: srcBase.tiles, tileSize: 256, maxzoom: srcBase.maxzoom, attribution: srcBase.attribution },
   } as StyleSpecification['sources'];
 
-  if (key === 'sat') {
+  if (key === 'sat' && !ov) {
     (sources as Record<string, unknown>).hybrid = {
       type: 'raster', tiles: ESRI_HYBRID, tileSize: 256, maxzoom: 18, attribution: 'Tiles &copy; Esri',
     };

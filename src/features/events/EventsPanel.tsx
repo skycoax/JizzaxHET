@@ -64,6 +64,42 @@ function formatTs(ts: number): string {
   return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
+/* ── Filtrlar URL'da: #/events?tur=theft&holat=unack&daraja=critical&q=... ── */
+function readHashParams(): URLSearchParams {
+  const h = window.location.hash;
+  const qi = h.indexOf('?');
+  return new URLSearchParams(qi >= 0 ? h.slice(qi + 1) : '');
+}
+
+function writeHashParams(patch: Record<string, string | null>): void {
+  const h = window.location.hash;
+  const qi = h.indexOf('?');
+  const base = qi >= 0 ? h.slice(0, qi) : h;
+  const sp = new URLSearchParams(qi >= 0 ? h.slice(qi + 1) : '');
+  for (const [k, v] of Object.entries(patch)) {
+    if (v === null || v === '' || v === 'all') sp.delete(k);
+    else sp.set(k, v);
+  }
+  const qs = sp.toString();
+  window.history.replaceState(null, '', base + (qs ? '?' + qs : ''));
+}
+
+const EVENT_TYPES: EventType[] = ['offline', 'fault', 'theft', 'overload', 'restore', 'warning', 'info'];
+const PRIOS: EventPriority[] = ['critical', 'high', 'medium', 'low'];
+
+function initTypeF(): 'all' | EventType {
+  const v = readHashParams().get('tur');
+  return v && (EVENT_TYPES as string[]).includes(v) ? (v as EventType) : 'all';
+}
+function initPrioF(): 'all' | EventPriority {
+  const v = readHashParams().get('daraja');
+  return v && (PRIOS as string[]).includes(v) ? (v as EventPriority) : 'all';
+}
+function initAckF(): 'all' | 'unack' | 'ack' {
+  const v = readHashParams().get('holat');
+  return v === 'unack' || v === 'ack' ? v : 'all';
+}
+
 export function EventsPanel({
   events,
   onSelectDevice,
@@ -71,11 +107,16 @@ export function EventsPanel({
   events: DeviceEvent[];
   onSelectDevice: (id: string) => void;
 }) {
-  const [typeF,   setTypeF]   = useState<'all' | EventType>('all');
-  const [prioF,   setPrioF]   = useState<'all' | EventPriority>('all');
-  const [ackF,    setAckF]    = useState<'all'|'unack'|'ack'>('all');
-  const [search,  setSearch]  = useState('');
+  const [typeF,   setTypeF]   = useState<'all' | EventType>(initTypeF);
+  const [prioF,   setPrioF]   = useState<'all' | EventPriority>(initPrioF);
+  const [ackF,    setAckF]    = useState<'all'|'unack'|'ack'>(initAckF);
+  const [search,  setSearch]  = useState(() => readHashParams().get('q') ?? '');
   const [localAck, setLocalAck] = useState<Set<string>>(new Set());
+
+  // Filtrlar URL bilan sinxron — havolani ulashish mumkin
+  useEffect(() => {
+    writeHashParams({ tur: typeF, holat: ackF, daraja: prioF, q: search || null });
+  }, [typeF, ackF, prioF, search]);
 
   const filtered = useMemo(() => {
     let list = events;
@@ -99,6 +140,34 @@ export function EventsPanel({
   const ackAll = () => {
     const ids = new Set(filtered.filter(e => !e.acknowledged).map(e => e.id));
     setLocalAck(prev => new Set([...prev, ...ids]));
+  };
+
+  // Filtrlangan jurnalni CSV (Excel ochadi) qilib yuklab olish
+  const exportCsv = () => {
+    const rows: string[][] = [['№', 'Vaqt', 'ID', 'Nomi', 'Tuman', 'Tur', 'Xabar', 'Jiddiylik', 'Holat']];
+    filtered.forEach((e, i) => rows.push([
+      String(i + 1),
+      formatTs(e.timestamp),
+      e.deviceId,
+      e.deviceName,
+      stripDistrict(e.district),
+      EVENT_LABELS[e.eventType],
+      e.message,
+      PRIO_LABELS[e.priority],
+      (e.acknowledged || localAck.has(e.id)) ? 'Tasdiqlangan' : 'Tasdiqlanmagan',
+    ]));
+    // BOM + ";" — Excel (ru/uz lokal) to'g'ri ochishi uchun
+    const csv = '\uFEFF' + rows
+      .map(r => r.map(c => '"' + c.replace(/"/g, '""') + '"').join(';'))
+      .join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    a.href = URL.createObjectURL(blob);
+    a.download = `hodisalar_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   const PRIO_COLORS: Record<EventPriority, string> = { critical: 'var(--crit)', high: 'var(--fault)', medium: 'var(--warn)', low: 'var(--accent)' };
@@ -131,6 +200,12 @@ export function EventsPanel({
             </svg>
             <input className="evts-search" placeholder="Qurilma, xabar..." value={search} onChange={e => setSearch(e.target.value)}/>
           </div>
+          <button className="evts-ackall" onClick={exportCsv} disabled={filtered.length === 0} title="Filtrlangan jurnalni Excel (CSV) ko'rinishida yuklab olish">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-2px', marginRight: 6 }}>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Excel
+          </button>
           <button className="evts-ackall" onClick={ackAll} disabled={unackCount === 0}>
             Barchasini tasdiqlash ({unackCount})
           </button>

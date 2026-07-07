@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
-import type { DashboardKpis, Device, DeviceType, DistrictSummary } from '@/types';
+import type { DashboardKpis, Device, DeviceEvent, DeviceType, DistrictSummary } from '@/types';
 import { STATUS_META, TYPE_META, formatDuration, formatNumber, stripDistrict } from '@/lib/utils';
 import { getStyle, type MapStyleKey } from './mapStyles';
-import { addDistrictLayers, districtBounds, tuneDistrictForStyle, updateDistrictColors } from './districtLayers';
-import { addDeviceLayers, applyDeviceFocus, devicesToFC, DEV_SRC, registerDeviceImages, tuneLabelsForStyle } from './deviceLayers';
+import { addDistrictLayers, districtBounds, tuneDistrictForStyle, updateDistrictColors, type DistrictColorMode } from './districtLayers';
+import { addDeviceLayers, applyDeviceFocus, devicesToFC, DEV_SRC, HOUSE_SRC, registerDeviceImages, tuneLabelsForStyle } from './deviceLayers';
 import { DistrictOverlayManager, HIDE_ZOOM } from './districtOverlays';
 import { playAlarmBeep } from '@/lib/sound';
 import { useCounter } from '@/hooks/useCounter';
@@ -19,6 +19,36 @@ const BEARING = -14;
 export type SitFocus = null | 'battery' | 'overload' | 'offline' | 'theft';
 const DEV_LAYERS = ['dev-tp', 'dev-biz', 'dev-house'] as const;
 
+const EMPTY_FC = { type: 'FeatureCollection', features: [] } as const;
+
+/** Ikkala qurilma manbasini (asosiy + maishiy klaster) yangilaydi. */
+function syncDeviceSources(map: maplibregl.Map, list: Device[]): void {
+  (map.getSource(DEV_SRC) as maplibregl.GeoJSONSource | undefined)
+    ?.setData(devicesToFC(list.filter(d => d.type !== 'household')) as never);
+  (map.getSource(HOUSE_SRC) as maplibregl.GeoJSONSource | undefined)
+    ?.setData(devicesToFC(list.filter(d => d.type === 'household')) as never);
+}
+
+/** Playback oynasidagi hodisalar FC — nuqta rangi tur bo'yicha, yoshi 0..1. */
+function buildPbFC(events: DeviceEvent[], devices: Device[], t: number) {
+  const byId = new Map(devices.map(d => [d.id, d] as const));
+  return {
+    type: 'FeatureCollection',
+    features: events
+      .filter(e => e.timestamp <= t && e.timestamp > t - PB_WINDOW)
+      .map(e => {
+        const d = byId.get(e.deviceId);
+        if (!d) return null;
+        return {
+          type: 'Feature',
+          properties: { ty: e.eventType, age: (t - e.timestamp) / PB_WINDOW },
+          geometry: { type: 'Point', coordinates: [d.lng, d.lat] },
+        };
+      })
+      .filter(Boolean),
+  };
+}
+
 /** Fokus turkumi bo'yicha TP ro'yxati (KPI hisoblash mantig'i bilan bir xil). */
 function devicesForFocus(devices: Device[], f: SitFocus): Device[] {
   const tps = devices.filter(d => d.type === 'concentrator');
@@ -31,21 +61,33 @@ function devicesForFocus(devices: Device[], f: SitFocus): Device[] {
   }
 }
 
+// Vaqt lentasi (playback) konstantalari
+const PB_SPAN   = 24 * 3600_000;  // ko'lam: oxirgi 24 soat
+const PB_WINDOW = 60 * 60_000;    // oynada ko'rinadigan iz: 60 daqiqa
+const PB_EV_COLORS: Record<string, string> = {
+  offline: '#ff4d57', fault: '#ff8c2f', theft: '#b06bff',
+  overload: '#f4c430', restore: '#22c97c', warning: '#f4c430', info: '#2f80d8',
+};
+
 export function MapPanel({
   devices, districts, kpis, soundOn,
+  events = [],
   selectedId, onSelect, active = true,
   showDistrictStats,
   onNewAlarm,
   theme = 'dark',
+  gotoDistrict = null,
 }: {
   devices: Device[]; districts: DistrictSummary[];
   kpis: DashboardKpis; soundOn: boolean;
+  events?: DeviceEvent[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   active?: boolean;
   showDistrictStats: boolean;
   onNewAlarm?: (device: Device) => void;
   theme?: 'dark' | 'light';
+  gotoDistrict?: { name: string; ts: number } | null;
 }) {
   const containerRef  = useRef<HTMLDivElement>(null);
   const mapRef        = useRef<maplibregl.Map | null>(null);
@@ -69,7 +111,32 @@ export function MapPanel({
   // Qurilma turlarini ko'rsatish/yashirish (TM / biznes / maishiy)
   const [typesOn, setTypesOn] = useState<Record<DeviceType, boolean>>({ concentrator: true, business: true, household: true });
   const typesRef = useRef(typesOn);
+  // Tuman bo'yash rejimi: holat / yo'qotish / mavjudlik
+  const [distMode, setDistMode] = useState<DistrictColorMode>('status');
+  const distModeRef = useRef(distMode);
+  // Vaqt lentasi (oxirgi 24 soat hodisalari)
+  const [pbOn,      setPbOn     ] = useState(false);
+  const [pbT,       setPbT      ] = useState(0);
+  const [pbTo,      setPbTo     ] = useState(0);
+  const [pbPlaying, setPbPlaying] = useState(false);
+  const [pbSpeed,   setPbSpeed  ] = useState(300); // sim-soniya / real-soniya
+  const pbRef = useRef({ on: false, t: 0 });
+  const eventsRef = useRef<DeviceEvent[]>(events);
   const firstThemeRun = useRef(true);
+
+  // Tumanlar bo'yicha o'rtacha yo'qotish % (TMlar bo'yicha)
+  const lossBy = useMemo(() => {
+    const acc: Record<string, { s: number; n: number }> = {};
+    devices.forEach(d => {
+      if (d.type === 'concentrator' && typeof d.lossPercent === 'number') {
+        (acc[d.district] ??= { s: 0, n: 0 });
+        acc[d.district].s += d.lossPercent;
+        acc[d.district].n += 1;
+      }
+    });
+    return Object.fromEntries(Object.entries(acc).map(([k, v]) => [k, v.s / v.n]));
+  }, [devices]);
+  const lossByRef = useRef(lossBy);
 
   selectRef.current    = onSelect;
   devicesRef.current   = devices;
@@ -81,6 +148,32 @@ export function MapPanel({
   showStatsRef.current = showDistrictStats;
   onNewAlarmRef.current= onNewAlarm;
   typesRef.current     = typesOn;
+  distModeRef.current  = distMode;
+  lossByRef.current    = lossBy;
+  eventsRef.current    = events;
+  pbRef.current        = { on: pbOn, t: pbT };
+
+  /** Playback vaqtida jonli qatlamlarni xiralashtirish / qaytarish. */
+  const applyPbDim = (map: maplibregl.Map, on: boolean) => {
+    if (!map.getLayer('dev-tp')) return;
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    if (on) {
+      const dims: [string, string, number][] = [
+        ['dev-tp', 'icon-opacity', 0.12], ['dev-biz', 'icon-opacity', 0.12], ['dev-house', 'icon-opacity', 0.1],
+        ['dev-label-tp', 'text-opacity', 0], ['dev-label-biz', 'text-opacity', 0],
+        ['dev-bat', 'icon-opacity', 0], ['dev-theft', 'icon-opacity', 0],
+        ['dev-pulse', 'circle-opacity', 0.05], ['dev-over', 'circle-stroke-opacity', 0],
+        ['dev-focus-ring', 'circle-stroke-opacity', 0],
+        ['house-cluster', 'circle-opacity', 0.1], ['house-cluster', 'circle-stroke-opacity', 0.1],
+        ['house-cluster-count', 'text-opacity', 0.1],
+      ];
+      dims.forEach(([id, prop, v]) => { if (map.getLayer(id)) map.setPaintProperty(id, prop as any, v); });
+    } else {
+      if (map.getLayer('dev-pulse')) map.setPaintProperty('dev-pulse', 'circle-opacity', 0.4);
+      applyDeviceFocus(map, focusRef.current); // qolgan qatlamlarni fokus holatiga qaytaradi
+    }
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+  };
 
   /* ================================================================
      Xaritani bir marta yaratish
@@ -102,14 +195,38 @@ export function MapPanel({
       registerDeviceImages(map);
       addDistrictLayers(map, styleKeyRef.current, districtsRef.current);
       addDeviceLayers(map, devicesRef.current, HOUSEHOLD_ZOOM);
-      (map.getSource(DEV_SRC) as maplibregl.GeoJSONSource | undefined)
-        ?.setData(devicesToFC(devicesRef.current.filter(d => typesRef.current[d.type])) as never);
-      updateDistrictColors(map, districtsRef.current);
+      syncDeviceSources(map, devicesRef.current.filter(d => typesRef.current[d.type]));
+      updateDistrictColors(map, districtsRef.current, distModeRef.current, lossByRef.current);
       tuneLabelsForStyle(map, styleKeyRef.current === 'light');
       tuneDistrictForStyle(map, styleKeyRef.current);
-      if (map.getLayer('dev-selected'))
+      if (map.getLayer('dev-selected')) {
         map.setFilter('dev-selected', ['==', ['get', 'id'], selIdRef.current ?? '___']);
+        map.setFilter('dev-selected-house', ['==', ['get', 'id'], selIdRef.current ?? '___']);
+      }
       applyDeviceFocus(map, focusRef.current);
+      // Vaqt lentasi qatlami
+      if (!map.getSource('pb-ev')) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        map.addSource('pb-ev', { type: 'geojson', data: EMPTY_FC as any });
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        map.addLayer({ id: 'pb-ev', type: 'circle', source: 'pb-ev', paint: {
+          'circle-color': ['match', ['get', 'ty'],
+            'offline', PB_EV_COLORS.offline, 'fault', PB_EV_COLORS.fault,
+            'theft', PB_EV_COLORS.theft, 'overload', PB_EV_COLORS.overload,
+            'restore', PB_EV_COLORS.restore, 'warning', PB_EV_COLORS.warning,
+            PB_EV_COLORS.info] as any,
+          'circle-radius': ['interpolate', ['linear'], ['get', 'age'], 0, 9, 1, 4] as any,
+          'circle-opacity': ['interpolate', ['linear'], ['get', 'age'], 0, 0.95, 1, 0.3] as any,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 1,
+        } });
+        /* eslint-enable @typescript-eslint/no-explicit-any */
+      }
+      if (pbRef.current.on) {
+        (map.getSource('pb-ev') as maplibregl.GeoJSONSource | undefined)
+          ?.setData(buildPbFC(eventsRef.current, devicesRef.current, pbRef.current.t) as never);
+        applyPbDim(map, true);
+      }
       // Overlay menejerini qayta yaratish (style reset bo'lganda)
       if (!overlayMgrRef.current) {
         overlayMgrRef.current = new DistrictOverlayManager(map);
@@ -118,6 +235,19 @@ export function MapPanel({
     });
 
     map.on('click', (e) => {
+      // 0) Maishiy klaster — bosilganda ochilish zoomigacha yaqinlashamiz
+      if (map.getLayer('house-cluster')) {
+        const cF = map.queryRenderedFeatures(e.point, { layers: ['house-cluster'] });
+        if (cF.length > 0) {
+          const cid = cF[0].properties?.cluster_id as number;
+          const center = (cF[0].geometry as GeoJSON.Point).coordinates as [number, number];
+          (map.getSource(HOUSE_SRC) as maplibregl.GeoJSONSource)
+            .getClusterExpansionZoom(cid)
+            .then(zoom => map.easeTo({ center, zoom: zoom + 0.2, duration: 500 }))
+            .catch(() => {});
+          return;
+        }
+      }
       // 1) Qurilma markeri ustiga bosildimi? → tanlash (detal kartasi ochiladi)
       const dF = map.queryRenderedFeatures(e.point, { layers: DEV_LAYERS as unknown as string[] });
       if (dF.length > 0) {
@@ -139,9 +269,9 @@ export function MapPanel({
     });
 
     map.on('mousemove', (e) => {
-      const f = map.queryRenderedFeatures(e.point, {
-        layers: [...(DEV_LAYERS as unknown as string[]), 'district-fill'],
-      });
+      const layers = [...(DEV_LAYERS as unknown as string[]), 'district-fill'];
+      if (map.getLayer('house-cluster')) layers.push('house-cluster');
+      const f = map.queryRenderedFeatures(e.point, { layers });
       map.getCanvas().style.cursor = f.length > 0 ? 'pointer' : '';
     });
 
@@ -186,9 +316,8 @@ export function MapPanel({
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
 
-    (map.getSource(DEV_SRC) as maplibregl.GeoJSONSource | undefined)
-      ?.setData(devicesToFC(devices.filter(d => typesOn[d.type])) as never);
-    updateDistrictColors(map, districts);
+    syncDeviceSources(map, devices.filter(d => typesOn[d.type]));
+    updateDistrictColors(map, districts, distMode, lossBy);
 
     // Yangi avariyalar
     const offNow = new Set(
@@ -209,7 +338,7 @@ export function MapPanel({
 
     // Overlay yangilanishi
     overlayMgrRef.current?.update(districts, showDistrictStats);
-  }, [devices, districts, soundOn, showDistrictStats, typesOn]);
+  }, [devices, districts, soundOn, showDistrictStats, typesOn, distMode, lossBy]);
 
   /* -- District overlay toggle -- */
   useEffect(() => {
@@ -222,6 +351,8 @@ export function MapPanel({
     if (!map) return;
     if (map.getLayer('dev-selected'))
       map.setFilter('dev-selected', ['==', ['get', 'id'], selectedId ?? '___']);
+    if (map.getLayer('dev-selected-house'))
+      map.setFilter('dev-selected-house', ['==', ['get', 'id'], selectedId ?? '___']);
     if (!selectedId) return;
     const d = devicesRef.current.find(x => x.id === selectedId);
     if (d) map.flyTo({ center: [d.lng, d.lat], zoom: Math.max(map.getZoom(), 14), pitch: is3DRef.current ? PITCH_3D : map.getPitch(), duration: 900 });
@@ -233,6 +364,57 @@ export function MapPanel({
     if (!map || !map.isStyleLoaded()) return;
     applyDeviceFocus(map, focus);
   }, [focus]);
+
+  /* -- Palitradan tuman fokusi (Ctrl+K) -- */
+  useEffect(() => {
+    if (!gotoDistrict) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const b = districtBounds(gotoDistrict.name);
+    if (b) map.fitBounds(b, { padding: 70, duration: 900 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gotoDistrict?.ts]);
+
+  /* -- Vaqt lentasi: oynadagi hodisalar qatlami -- */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded() || !map.getSource('pb-ev')) return;
+    (map.getSource('pb-ev') as maplibregl.GeoJSONSource)
+      .setData((pbOn ? buildPbFC(events, devicesRef.current, pbT) : EMPTY_FC) as never);
+  }, [pbOn, pbT, events]);
+
+  /* -- Vaqt lentasi: jonli qatlamlarni xiralashtirish -- */
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    applyPbDim(map, pbOn);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pbOn]);
+
+  /* -- Vaqt lentasi: avto-yurish -- */
+  useEffect(() => {
+    if (!pbOn || !pbPlaying) return;
+    const id = window.setInterval(() => {
+      setPbT(t => {
+        const next = t + 250 * pbSpeed;
+        if (next >= pbTo) { setPbPlaying(false); return pbTo; }
+        return next;
+      });
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [pbOn, pbPlaying, pbSpeed, pbTo]);
+
+  const pbStart = () => {
+    const to = Date.now();
+    setPbTo(to);
+    setPbT(to - PB_SPAN);
+    setPbOn(true);
+    setPbPlaying(true);
+  };
+  const pbStop = () => {
+    setPbOn(false);
+    setPbPlaying(false);
+  };
 
   useEffect(() => {
     const fn = () => mapRef.current?.resize();
@@ -335,7 +517,18 @@ export function MapPanel({
             </button>
           ))}
         </div>
+        <div className="map-seg" role="group" aria-label="Tuman rangi">
+          <button className={distMode==='status'?'on':''} onClick={() => setDistMode('status')} title="Tuman rangi — eng yomon holat bo'yicha">Holat</button>
+          <button className={distMode==='loss'  ?'on':''} onClick={() => setDistMode('loss')}   title="Tuman rangi — o'rtacha yo'qotish % bo'yicha">Yo'qotish</button>
+          <button className={distMode==='avail' ?'on':''} onClick={() => setDistMode('avail')}  title="Tuman rangi — tarmoq mavjudligi bo'yicha">Mavjudlik</button>
+        </div>
         <div style={{ display:'flex', gap:8 }}>
+          <button className={`map-btn ${pbOn?'on':''}`} onClick={pbOn ? pbStop : pbStart} title="Oxirgi 24 soat hodisalarini vaqt lentasida ko'rish">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>
+            </svg>
+            24 soat
+          </button>
           <button className={`map-btn ${is3D?'on':''}`} onClick={() => setIs3D(v => !v)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -381,7 +574,63 @@ export function MapPanel({
           </div>
         )}
       </div>
+      {pbOn && (
+        <PlaybackBar
+          t={pbT} from={pbTo - PB_SPAN} to={pbTo}
+          playing={pbPlaying} speed={pbSpeed}
+          count={events.filter(e => e.timestamp <= pbT && e.timestamp > pbT - PB_WINDOW).length}
+          onSeek={v => { setPbT(v); setPbPlaying(false); }}
+          onPlay={() => setPbPlaying(p => !p)}
+          onSpeed={setPbSpeed}
+          onClose={pbStop}
+        />
+      )}
       {selected && <DeviceDetailCard device={selected} onClose={() => onSelect(null)}/>}
+    </div>
+  );
+}
+
+/* ========================================================
+   Vaqt lentasi paneli (oxirgi 24 soat)
+   ======================================================== */
+function PlaybackBar({ t, from, to, playing, speed, count, onSeek, onPlay, onSpeed, onClose }: {
+  t: number; from: number; to: number;
+  playing: boolean; speed: number; count: number;
+  onSeek: (v: number) => void;
+  onPlay: () => void;
+  onSpeed: (s: number) => void;
+  onClose: () => void;
+}) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const d = new Date(t);
+  const label = `${pad(d.getDate())}.${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return (
+    <div className="pb-bar">
+      <button className="pb-play" onClick={onPlay} title={playing ? "To'xtatish" : 'Yurgizish'} aria-label={playing ? "To'xtatish" : 'Yurgizish'}>
+        {playing ? (
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+        ) : (
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><polygon points="7 4 20 12 7 20 7 4"/></svg>
+        )}
+      </button>
+      <input
+        className="pb-range"
+        type="range"
+        min={from} max={to} step={60_000}
+        value={Math.min(Math.max(t, from), to)}
+        onChange={e => onSeek(Number(e.target.value))}
+        aria-label="Vaqt"
+      />
+      <span className="pb-time mono">{label}</span>
+      <div className="pb-speeds">
+        {([60, 300, 1800] as const).map(s => (
+          <button key={s} className={speed === s ? 'on' : ''} onClick={() => onSpeed(s)}>
+            {s === 60 ? '1d/s' : s === 300 ? '5d/s' : '30d/s'}
+          </button>
+        ))}
+      </div>
+      <span className="pb-count mono" title="Joriy 60 daqiqalik oynadagi hodisalar">{count} hodisa</span>
+      <button className="pb-x" onClick={onClose} aria-label="Yopish">&#x2715;</button>
     </div>
   );
 }

@@ -7,9 +7,36 @@ import type { MapStyleKey } from './mapStyles';
 const SRC = 'jz-districts';
 const NEUTRAL = '#3a4a68';
 
-function fillExpr(districts: DistrictSummary[]): unknown {
+/** Tuman rangi rejimi: holat / yo'qotish / mavjudlik. */
+export type DistrictColorMode = 'status' | 'loss' | 'avail';
+
+function lossColor(pct: number): string {
+  if (pct < 10) return STATUS_HEX.online;
+  if (pct < 15) return STATUS_HEX.warning;
+  if (pct < 20) return STATUS_HEX.fault;
+  return STATUS_HEX.offline;
+}
+
+function availColor(pct: number): string {
+  if (pct >= 98) return STATUS_HEX.online;
+  if (pct >= 95) return STATUS_HEX.warning;
+  if (pct >= 90) return STATUS_HEX.fault;
+  return STATUS_HEX.offline;
+}
+
+function fillExpr(
+  districts: DistrictSummary[],
+  mode: DistrictColorMode = 'status',
+  lossBy?: Record<string, number>,
+): unknown {
   const expr: unknown[] = ['match', ['get', DISTRICT_APP_PROP]];
-  districts.forEach((d) => { expr.push(d.name, STATUS_HEX[d.worstStatus]); });
+  districts.forEach((d) => {
+    const color =
+      mode === 'loss'  ? (lossBy && d.name in lossBy ? lossColor(lossBy[d.name]) : NEUTRAL) :
+      mode === 'avail' ? availColor(d.availability) :
+      STATUS_HEX[d.worstStatus];
+    expr.push(d.name, color);
+  });
   expr.push(NEUTRAL);
   return expr;
 }
@@ -106,11 +133,16 @@ export function addDistrictLayers(
   });
 }
 
-/** Jonli yangilanish: tuman ranglarini o'zgartiradi. */
-export function updateDistrictColors(map: maplibregl.Map, districts: DistrictSummary[]): void {
+/** Jonli yangilanish: tuman ranglarini rejimga qarab o'zgartiradi. */
+export function updateDistrictColors(
+  map: maplibregl.Map,
+  districts: DistrictSummary[],
+  mode: DistrictColorMode = 'status',
+  lossBy?: Record<string, number>,
+): void {
   if (!map.getLayer('district-fill')) return;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  map.setPaintProperty('district-fill', 'fill-color', fillExpr(districts) as any);
+  map.setPaintProperty('district-fill', 'fill-color', fillExpr(districts, mode, lossBy) as any);
 }
 
 /** Yorug' uslubda label ranglarini moslaydi. */

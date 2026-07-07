@@ -80,7 +80,13 @@ interface Props {
   onLogout: () => void;
   theme: Theme;
   onToggleTheme: () => void;
+  /** Oxirgi snapshot vaqti (generatedAt). */
+  dataTs: number;
+  /** true — jonli oqim yo'q, localStorage keshi ko'rsatilyapti. */
+  fromCache: boolean;
 }
+
+const TILES_KEY = 'jhet-tiles-base';
 
 export function Sidebar({
   view, onChange, kpis,
@@ -88,10 +94,27 @@ export function Sidebar({
   settings, onSettings,
   user, demoMode, onLogout,
   theme, onToggleTheme,
+  dataTs, fromCache,
 }: Props) {
   const now        = useClock();
   const alarmCount = useCounter(kpis.activeAlarms);
   const theftCount = useCounter(kpis.theftTps);
+
+  // Ma'lumot yoshi: 60s dan keyin ogohlantirish, 180s dan keyin kritik
+  const ageSec  = Math.max(0, Math.floor((now.getTime() - dataTs) / 1000));
+  const ageTxt  = ageSec < 60 ? `${ageSec} s` : ageSec < 3600 ? `${Math.floor(ageSec / 60)} daq` : `${Math.floor(ageSec / 3600)} soat`;
+  const freshCls = fromCache ? 'cache' : ageSec > 180 ? 'crit' : ageSec > 60 ? 'warn' : 'ok';
+
+  const [tilesBase, setTilesBase] = useState<string>(() => {
+    try { return localStorage.getItem(TILES_KEY) ?? ''; } catch { return ''; }
+  });
+  const saveTiles = (v: string) => {
+    setTilesBase(v);
+    try {
+      if (v.trim()) localStorage.setItem(TILES_KEY, v.trim());
+      else localStorage.removeItem(TILES_KEY);
+    } catch { /* ignore */ }
+  };
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; }
@@ -200,11 +223,11 @@ export function Sidebar({
       <div className="s-spacer"/>
 
       {/* Tizim holati + vaqt — bitta karta */}
-      <div className="s-status" title={`${t('topbar.systemStatus')}: ${sys.label}`}>
+      <div className="s-status" title={`${t('topbar.systemStatus')}: ${sys.label} · Ma'lumot ${ageTxt} oldin yangilangan`}>
         <div className="s-status-top">
           <span className="s-status-lbl">{t('topbar.systemStatus')}</span>
-          <span className={`s-livetag${demoMode ? ' demo' : ''}`}>
-            <span className="s-livedot"/>{demoMode ? 'DEMO' : t('topbar.live')}
+          <span className={`s-livetag${demoMode ? ' demo' : ''}${fromCache ? ' off' : ''}`}>
+            <span className="s-livedot"/>{fromCache ? 'OFLAYN' : demoMode ? 'DEMO' : t('topbar.live')}
           </span>
         </div>
         <div className="s-status-mid">
@@ -212,7 +235,12 @@ export function Sidebar({
           <span className="s-status-val" style={{ color: sys.color }}>{sys.label}</span>
           <span className="s-status-time mono">{formatTime(now).slice(0, 5)}</span>
         </div>
-        <div className="s-status-date">{formatDateUz(now)}</div>
+        <div className="s-status-date">
+          <span>{formatDateUz(now)}</span>
+          <span className={`s-fresh ${freshCls}`} title="Oxirgi ma'lumot yangilanishi">
+            {fromCache ? `${formatTime(new Date(dataTs)).slice(0, 5)} holati` : `↺ ${ageTxt}`}
+          </span>
+        </div>
       </div>
 
       {/* Boshqaruv — bitta qator teng kvadratlar */}
@@ -304,6 +332,19 @@ export function Sidebar({
                   <div className={`sp-toggle ${settings[item.key] ? 'on' : ''}`}><i/></div>
                 </label>
               ))}
+              <div className="sp-tiles">
+                <div className="sp-label">Lokal tayl-server (oflayn xarita)</div>
+                <input
+                  className="sp-inp mono"
+                  value={tilesBase}
+                  onChange={e => saveTiles(e.target.value)}
+                  placeholder="http://10.0.0.5:8080/tiles"
+                  spellCheck={false}
+                />
+                <div className="sp-desc">
+                  Bo'sh — internetdagi CARTO/ESRI tayllari. Kiritilgach sahifani yangilang.
+                </div>
+              </div>
             </div>
           )}
         </div>

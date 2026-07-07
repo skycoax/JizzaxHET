@@ -81,7 +81,15 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 .s-status-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; transition: background .4s; }
 .s-status-val { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; letter-spacing: .4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .s-status-time { font-size: 13px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
-.s-status-date { font-size: 10px; color: var(--muted); letter-spacing: .2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-status-date { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 10px; color: var(--muted); letter-spacing: .2px; white-space: nowrap; }
+.s-status-date > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.s-fresh { flex: 0 0 auto; font-family: var(--font-mono); font-size: 9.5px; }
+.s-fresh.ok { color: var(--faint); }
+.s-fresh.warn { color: var(--warn); font-weight: 700; }
+.s-fresh.crit { color: var(--crit); font-weight: 700; }
+.s-fresh.cache { color: var(--crit); font-weight: 700; }
+.s-livetag.off { color: var(--crit); }
+.s-livetag.off .s-livedot { background: var(--crit); animation: none; }
 
 /* Boshqaruv — bitta qator teng kvadratlar */
 .s-controls { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line); }
@@ -934,6 +942,10 @@ th.fixed-col { z-index: 4; }
 .sp-toggle i { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--faint); transition: .2s; }
 .sp-toggle.on { background: var(--accent-bg); border-color: var(--accent); }
 .sp-toggle.on i { background: var(--accent); transform: translateX(16px); }
+.sp-tiles { padding: 11px 14px 13px; border-top: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 6px; }
+.sp-inp { width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 7px 10px; font-size: 11.5px; color: var(--text); outline: none; }
+.sp-inp:focus { border-color: var(--accent-border); }
+.sp-inp::placeholder { color: var(--faint); }
 
 /* ============================================================
    TETK IERARXIK DARAXT (CAS.NET uslubida)
@@ -1376,3 +1388,41 @@ th.fixed-col { z-index: 4; }
 .bot-dot { transition: background 0.4s, box-shadow 0.4s; }
 .bot-dot.ok    { box-shadow: 0 0 6px var(--ok); }
 .bot-dot.error { animation: alarmPulse 1.4s ease-in-out infinite; }
+
+/* ============================================================
+   CTRL+K BUYRUQLAR PALITRASI
+   ============================================================ */
+.cp-overlay { position: fixed; inset: 0; z-index: 1400; background: rgba(4, 8, 16, .55); backdrop-filter: blur(2px); display: flex; align-items: flex-start; justify-content: center; padding-top: 14vh; animation: cpIn .12s ease-out; }
+@keyframes cpIn { from { opacity: 0; } to { opacity: 1; } }
+.cp-panel { width: 540px; max-width: calc(100vw - 40px); background: var(--pop-bg); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); overflow: hidden; animation: subIn .16s ease-out; }
+.cp-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); color: var(--faint); }
+.cp-head input { flex: 1; min-width: 0; background: none; border: none; outline: none; font-family: inherit; font-size: 14.5px; color: var(--text); }
+.cp-head input::placeholder { color: var(--faint); }
+.cp-head kbd, .cp-foot kbd { font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); background: var(--card); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; }
+.cp-list { max-height: 340px; overflow-y: auto; padding: 6px; }
+.cp-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-family: inherit; background: none; border: none; border-radius: var(--r-sm); padding: 8px 9px; cursor: pointer; }
+.cp-item.on { background: var(--accent-bg); }
+.cp-kind { flex: 0 0 62px; font-size: 9px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; text-align: center; padding: 2px 0; border-radius: 4px; background: var(--card); color: var(--faint); border: 1px solid var(--line); }
+.cp-kind.k-device { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
+.cp-kind.k-district { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); background: color-mix(in srgb, var(--ok) 10%, transparent); }
+.cp-label { flex: 1; min-width: 0; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cp-label em { display: block; font-style: normal; font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+.cp-dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; }
+.cp-empty { padding: 22px; text-align: center; font-size: 12.5px; color: var(--faint); }
+.cp-foot { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--line); font-size: 10.5px; color: var(--faint); }
+.cp-foot span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* ============================================================
+   VAQT LENTASI (24 soat playback)
+   ============================================================ */
+.pb-bar { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 655; display: flex; align-items: center; gap: 10px; width: min(680px, calc(100% - 340px)); padding: 9px 12px; background: var(--ov-bg-strong); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); backdrop-filter: blur(5px); animation: subIn .2s; }
+.pb-play { flex: 0 0 auto; width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm); border: 1px solid var(--accent-border); background: var(--accent-bg); color: var(--accent); cursor: pointer; }
+.pb-play:hover { background: var(--accent-hover); }
+.pb-range { flex: 1; min-width: 0; accent-color: var(--accent); cursor: pointer; }
+.pb-time { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--text); }
+.pb-speeds { flex: 0 0 auto; display: flex; gap: 3px; }
+.pb-speeds button { font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 3px 6px; cursor: pointer; }
+.pb-speeds button.on { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+.pb-count { flex: 0 0 auto; font-size: 10px; color: var(--muted); }
+.pb-x { flex: 0 0 auto; background: none; border: none; color: var(--faint); font-size: 14px; cursor: pointer; padding: 0 2px; }
+.pb-x:hover { color: var(--text); }

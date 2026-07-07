@@ -9,6 +9,8 @@ import type { SitFocus } from './MapPanel';
 // ============================================================
 
 export const DEV_SRC = 'devices';
+/** Maishiy (M-n) nuqtalar alohida klasterlanadigan manbada. */
+export const HOUSE_SRC = 'devices-house';
 const PR = 2; // pixelRatio — retina aniqligi
 
 const STATUS_FILL: Record<string, string> = {
@@ -188,11 +190,18 @@ const Z = (a: number, b: number) => ['interpolate', ['linear'], ['zoom'], 7, a, 
 const statusColor = ['match', ['get', 'status'], 'online', STATUS_FILL.online, 'warning', STATUS_FILL.warning, 'fault', STATUS_FILL.fault, STATUS_FILL.offline];
 
 /** Qurilma qatlamlarini qo'shadi (style.load da chaqiriladi). */
-export function addDeviceLayers(map: maplibregl.Map, devices: Device[], householdZoom: number): void {
+export function addDeviceLayers(map: maplibregl.Map, devices: Device[], _householdZoom: number): void {
   if (map.getSource(DEV_SRC)) return;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  map.addSource(DEV_SRC, { type: 'geojson', data: devicesToFC(devices) as any });
   /* eslint-disable @typescript-eslint/no-explicit-any */
+  map.addSource(DEV_SRC, { type: 'geojson', data: devicesToFC(devices.filter(d => d.type !== 'household')) as any });
+  // Maishiy nuqtalar — klasterlanadigan alohida manba (yuzlab nuqta birlashadi)
+  map.addSource(HOUSE_SRC, {
+    type: 'geojson',
+    data: devicesToFC(devices.filter(d => d.type === 'household')) as any,
+    cluster: true,
+    clusterRadius: 42,
+    clusterMaxZoom: 13,
+  } as any);
   const A = (l: any) => map.addLayer(l);
 
   // Avariya pulsi (canvas, RAF bilan animatsiyalanadi)
@@ -203,8 +212,19 @@ export function addDeviceLayers(map: maplibregl.Map, devices: Device[], househol
   A({ id: 'dev-focus-ring', type: 'circle', source: DEV_SRC, filter: ['==', ['get', 'id'], '___'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#ff8c2f', 'circle-stroke-width': 3, 'circle-stroke-opacity': 0.95, 'circle-radius': Z(16, 25) as any, 'circle-pitch-alignment': 'map' } });
   // Tanlangan qurilma halqasi
   A({ id: 'dev-selected', type: 'circle', source: DEV_SRC, filter: ['==', ['get', 'id'], '___'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#2f80d8', 'circle-stroke-width': 2.6, 'circle-stroke-opacity': 0.95, 'circle-radius': Z(17, 26) as any } });
-  // Maishiy (zoomdan keyin)
-  A({ id: 'dev-house', type: 'symbol', source: DEV_SRC, minzoom: householdZoom, filter: ['==', ['get', 'type'], 'household'], layout: { 'icon-image': ['concat', 'house-', ['get', 'vstatus']], 'icon-size': Z(0.85, 1.15) as any, 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+  // Maishiy klasterlari: doira + son
+  A({ id: 'house-cluster', type: 'circle', source: HOUSE_SRC, filter: ['has', 'point_count'], paint: {
+    'circle-color': '#2f80d8', 'circle-opacity': 0.85,
+    'circle-stroke-color': '#ffffff', 'circle-stroke-width': 1.6,
+    'circle-radius': ['step', ['get', 'point_count'], 11, 10, 14, 25, 18, 50, 23] as any,
+  } });
+  A({ id: 'house-cluster-count', type: 'symbol', source: HOUSE_SRC, filter: ['has', 'point_count'], layout: {
+    'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-allow-overlap': true,
+  }, paint: { 'text-color': '#ffffff' } });
+  // Yakka maishiy nuqtalar (klasterlanmaganlari)
+  A({ id: 'dev-house', type: 'symbol', source: HOUSE_SRC, filter: ['!', ['has', 'point_count']], layout: { 'icon-image': ['concat', 'house-', ['get', 'vstatus']], 'icon-size': Z(0.85, 1.15) as any, 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+  // Tanlangan maishiy qurilma halqasi (asosiy manbada emas)
+  A({ id: 'dev-selected-house', type: 'circle', source: HOUSE_SRC, filter: ['==', ['get', 'id'], '___'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#2f80d8', 'circle-stroke-width': 2.6, 'circle-stroke-opacity': 0.95, 'circle-radius': Z(14, 22) as any } });
   // Tadbirkorlik
   A({ id: 'dev-biz', type: 'symbol', source: DEV_SRC, filter: ['==', ['get', 'type'], 'business'], layout: { 'icon-image': ['concat', 'biz-', ['get', 'vstatus']], 'icon-size': Z(0.85, 1.2) as any, 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
   // TP konsentratorlar — ikona rangi vstatus bo'yicha (yuklama oshgan → orange)
@@ -246,6 +266,13 @@ export function applyDeviceFocus(map: maplibregl.Map, focus: SitFocus): void {
   map.setPaintProperty('dev-biz', 'icon-opacity', biz as any);
   map.setPaintProperty('dev-label-biz', 'text-opacity', biz as any);
   map.setPaintProperty('dev-house', 'icon-opacity', house as any);
+  // Klasterlar ham maishiy bilan birga xiralashadi
+  const houseNum = typeof house === 'number' ? house : 1;
+  if (map.getLayer('house-cluster')) {
+    map.setPaintProperty('house-cluster', 'circle-opacity', houseNum * 0.85);
+    map.setPaintProperty('house-cluster', 'circle-stroke-opacity', houseNum);
+    map.setPaintProperty('house-cluster-count', 'text-opacity', houseNum);
+  }
   map.setPaintProperty('dev-bat', 'icon-opacity', focus === null || focus === 'battery' ? 1 : 0);
   map.setPaintProperty('dev-theft', 'icon-opacity', focus === null || focus === 'theft' ? 1 : 0);
   map.setPaintProperty('dev-over', 'circle-stroke-opacity', focus === null || focus === 'overload' ? 1 : 0);
