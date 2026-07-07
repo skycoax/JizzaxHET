@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
-import type { DashboardKpis, Device, DistrictSummary } from '@/types';
+import type { DashboardKpis, Device, DeviceType, DistrictSummary } from '@/types';
 import { STATUS_META, TYPE_META, formatDuration, formatNumber, stripDistrict } from '@/lib/utils';
 import { getStyle, type MapStyleKey } from './mapStyles';
 import { addDistrictLayers, tuneDistrictForStyle, updateDistrictColors } from './districtLayers';
@@ -66,6 +66,9 @@ export function MapPanel({
   const [is3D,     setIs3D    ] = useState(true);
   const [focus,    setFocus   ] = useState<SitFocus>(null);
   const [legendOpen, setLegendOpen] = useState(false);
+  // Qurilma turlarini ko'rsatish/yashirish (TM / biznes / maishiy)
+  const [typesOn, setTypesOn] = useState<Record<DeviceType, boolean>>({ concentrator: true, business: true, household: true });
+  const typesRef = useRef(typesOn);
   const firstThemeRun = useRef(true);
 
   selectRef.current    = onSelect;
@@ -77,6 +80,7 @@ export function MapPanel({
   selIdRef.current     = selectedId;
   showStatsRef.current = showDistrictStats;
   onNewAlarmRef.current= onNewAlarm;
+  typesRef.current     = typesOn;
 
   /* ================================================================
      Xaritani bir marta yaratish
@@ -99,7 +103,7 @@ export function MapPanel({
       addDistrictLayers(map, styleKeyRef.current, districtsRef.current);
       addDeviceLayers(map, devicesRef.current, HOUSEHOLD_ZOOM);
       (map.getSource(DEV_SRC) as maplibregl.GeoJSONSource | undefined)
-        ?.setData(devicesToFC(devicesRef.current) as never);
+        ?.setData(devicesToFC(devicesRef.current.filter(d => typesRef.current[d.type])) as never);
       updateDistrictColors(map, districtsRef.current);
       tuneLabelsForStyle(map, styleKeyRef.current === 'light');
       tuneDistrictForStyle(map, styleKeyRef.current);
@@ -183,7 +187,7 @@ export function MapPanel({
     if (!map || !map.isStyleLoaded()) return;
 
     (map.getSource(DEV_SRC) as maplibregl.GeoJSONSource | undefined)
-      ?.setData(devicesToFC(devices) as never);
+      ?.setData(devicesToFC(devices.filter(d => typesOn[d.type])) as never);
     updateDistrictColors(map, districts);
 
     // Yangi avariyalar
@@ -205,7 +209,7 @@ export function MapPanel({
 
     // Overlay yangilanishi
     overlayMgrRef.current?.update(districts, showDistrictStats);
-  }, [devices, districts, soundOn, showDistrictStats]);
+  }, [devices, districts, soundOn, showDistrictStats, typesOn]);
 
   /* -- District overlay toggle -- */
   useEffect(() => {
@@ -245,9 +249,19 @@ export function MapPanel({
     return () => ro.disconnect();
   }, []);
 
+  const toggleType = (ty: DeviceType) => {
+    const next = { ...typesOn, [ty]: !typesOn[ty] };
+    setTypesOn(next);
+    // Yashirilgan turdagi tanlangan qurilma — detal kartasini yopamiz
+    const sel = selIdRef.current ? devicesRef.current.find(d => d.id === selIdRef.current) : null;
+    if (sel && !next[sel.type]) onSelect(null);
+  };
+
   const toggleFocus = (f: SitFocus) => {
     const next = focus === f ? null : f;
     setFocus(next);
+    // Fokus turkumlari TM larga tegishli — yashirilgan bo'lsa, qaytaramiz
+    if (next !== null && !typesOn.concentrator) setTypesOn(p => ({ ...p, concentrator: true }));
     const map = mapRef.current;
     if (!map || next === null) return;
     // Har qanday turkumga bosilganda — o'sha TP larni ko'rsatadigan ko'rinishga uchamiz
@@ -275,6 +289,23 @@ export function MapPanel({
           <button className={styleKey==='cyber' ?'on':''} onClick={() => setStyleKey('cyber')}>Cyber 3D</button>
           <button className={styleKey==='sat'   ?'on':''} onClick={() => setStyleKey('sat')}>Sun'iy yo'ldosh</button>
           <button className={styleKey==='light' ?'on':''} onClick={() => setStyleKey('light')}>Yorug'</button>
+        </div>
+        <div className="map-seg" role="group" aria-label="Qurilma turlari">
+          {([
+            { ty: 'concentrator', l: 'TM',      full: 'TM konsentratorlar' },
+            { ty: 'business',     l: 'Biznes',  full: 'Tadbirkorlik obyektlari' },
+            { ty: 'household',    l: 'Maishiy', full: 'Maishiy abonentlar' },
+          ] as { ty: DeviceType; l: string; full: string }[]).map(x => (
+            <button
+              key={x.ty}
+              className={typesOn[x.ty] ? 'on' : 'off'}
+              onClick={() => toggleType(x.ty)}
+              title={`${x.full} — ko'rsatish / yashirish`}
+              aria-pressed={typesOn[x.ty]}
+            >
+              {x.l}
+            </button>
+          ))}
         </div>
         <div style={{ display:'flex', gap:8 }}>
           <button className={`map-btn ${is3D?'on':''}`} onClick={() => setIs3D(v => !v)}>
