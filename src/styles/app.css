@@ -40,13 +40,16 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 }
 .sidebar.collapsed { flex-basis: 68px; width: 68px; }
 
-/* Brend — oq letterhead bandi (institutsional lockup) */
-.s-brand { display: flex; align-items: center; justify-content: center; gap: 11px; padding: 15px 14px; background: #ffffff; border-bottom: 1px solid var(--line); }
+/* Brend — letterhead band: yorug'da oq, tunda rail bilan birga qorayadi */
+.s-brand { display: flex; align-items: center; justify-content: center; gap: 11px; padding: 15px 14px; background: var(--panel); border-bottom: 1px solid var(--line); }
 .s-logo { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; }
 .s-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .s-brand-text { flex: 0 1 auto; min-width: 0; }
 .s-brand-text h1 { font-size: 15px; font-weight: 800; letter-spacing: .3px; line-height: 1.05; color: #0e3a66; white-space: nowrap; }
 .s-brand-text p { font-size: 9px; font-weight: 600; color: #3f82c4; letter-spacing: 1px; text-transform: uppercase; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Tunda lockup ranglari: oq sarlavha + och ko'k subtitr */
+[data-theme="dark"] .s-brand-text h1 { color: var(--text); }
+[data-theme="dark"] .s-brand-text p { color: #74aede; }
 .s-collapse { flex: 0 0 auto; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer; transition: .14s; }
 .s-collapse:hover { color: var(--text); border-color: var(--line-hover); }
 
