@@ -240,6 +240,28 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 .map-btn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 .map-btn svg { width: 14px; height: 14px; }
 
+/* ── Yuqori-markaz panel: tuman tanlash + manzil qidiruvi ── */
+.map-ctrl.tc { top: 12px; left: 50%; transform: translateX(-50%); flex-direction: row; align-items: flex-start; gap: 8px; z-index: 640; }
+.mtc-dd { position: relative; }
+.mtc-menu { position: absolute; top: calc(100% + 6px); left: 0; min-width: 210px; max-height: 320px; overflow-y: auto; background: var(--ov-bg-strong); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); padding: 5px; backdrop-filter: blur(4px); animation: subIn .18s; }
+.mtc-item { display: block; width: 100%; text-align: left; font-family: inherit; font-size: 12px; color: var(--muted); background: none; border: none; border-radius: var(--r-sm); padding: 7px 9px; cursor: pointer; transition: background .1s, color .1s; }
+.mtc-item:hover { background: var(--hover-2); color: var(--text); }
+.mtc-item.region { color: var(--accent); font-weight: 600; margin-bottom: 3px; border-bottom: 1px solid var(--line-soft); border-radius: var(--r-sm) var(--r-sm) 0 0; }
+.mtc-search { display: flex; align-items: center; gap: 7px; width: 320px; background: var(--ov-bg); border: 1px solid var(--line); border-radius: var(--r-md); padding: 0 6px 0 10px; box-shadow: var(--shadow-pop); }
+.mtc-search:focus-within { border-color: var(--accent-border); }
+.mtc-search > svg { flex: 0 0 auto; color: var(--faint); }
+.mtc-search input { flex: 1; min-width: 0; background: none; border: none; outline: none; font-family: inherit; font-size: 12px; color: var(--text); padding: 8px 0; }
+.mtc-search input::placeholder { color: var(--faint); }
+.mtc-x { background: none; border: none; color: var(--faint); font-size: 13px; line-height: 1; cursor: pointer; padding: 0 3px; }
+.mtc-x:hover { color: var(--text); }
+.mtc-go { flex: 0 0 auto; font-family: inherit; font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-bg); border: 1px solid var(--accent-border); border-radius: var(--r-sm); padding: 5px 10px; cursor: pointer; }
+.mtc-go:hover:not(:disabled) { background: var(--accent-hover); }
+.mtc-go:disabled { opacity: .45; cursor: default; }
+.mtc-results { width: 320px; }
+.mtc-line1 { display: block; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtc-line2 { display: block; font-size: 10.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mtc-empty { padding: 11px; font-size: 11.5px; color: var(--faint); text-align: center; }
+
 /* legend */
 .map-legend { position: absolute; left: 12px; bottom: 16px; z-index: 600; background: var(--ov-bg); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); overflow: hidden; backdrop-filter: blur(4px); }
 .legend-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: .3px; color: var(--muted); background: none; border: none; cursor: pointer; }

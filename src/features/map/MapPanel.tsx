@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import type { DashboardKpis, Device, DeviceType, DistrictSummary } from '@/types';
 import { STATUS_META, TYPE_META, formatDuration, formatNumber, stripDistrict } from '@/lib/utils';
 import { getStyle, type MapStyleKey } from './mapStyles';
-import { addDistrictLayers, tuneDistrictForStyle, updateDistrictColors } from './districtLayers';
+import { addDistrictLayers, districtBounds, tuneDistrictForStyle, updateDistrictColors } from './districtLayers';
 import { addDeviceLayers, applyDeviceFocus, devicesToFC, DEV_SRC, registerDeviceImages, tuneLabelsForStyle } from './deviceLayers';
 import { DistrictOverlayManager, HIDE_ZOOM } from './districtOverlays';
 import { playAlarmBeep } from '@/lib/sound';
@@ -278,6 +278,34 @@ export function MapPanel({
   const fitRegion = () =>
     mapRef.current?.flyTo({ center: REGION_CENTER, zoom: REGION_ZOOM, pitch: is3D ? PITCH_3D : 0, bearing: BEARING, duration: 900 });
 
+  /* -- Hudud tanlash va qidiruv fokusi -- */
+  const searchMarkerRef = useRef<maplibregl.Marker | null>(null);
+
+  const focusDistrict = (name: string) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const b = districtBounds(name);
+    if (b) map.fitBounds(b, { padding: 70, duration: 900 });
+  };
+
+  const focusPlace = (lat: number, lon: number, bb?: [number, number, number, number]) => {
+    const map = mapRef.current;
+    if (!map) return;
+    searchMarkerRef.current?.remove();
+    searchMarkerRef.current = new maplibregl.Marker({ color: '#2f80d8' }).setLngLat([lon, lat]).addTo(map);
+    if (bb) {
+      // Nominatim boundingbox: [janub, shimol, g'arb, sharq]
+      map.fitBounds([[bb[2], bb[0]], [bb[3], bb[1]]] as [[number, number], [number, number]], { padding: 90, maxZoom: 16.5, duration: 900 });
+    } else {
+      map.flyTo({ center: [lon, lat], zoom: 15.5, duration: 900 });
+    }
+  };
+
+  const clearSearchMarker = () => {
+    searchMarkerRef.current?.remove();
+    searchMarkerRef.current = null;
+  };
+
   const selected = selectedId ? (devices.find(d => d.id === selectedId) ?? null) : null;
 
   return (
@@ -315,14 +343,15 @@ export function MapPanel({
             </svg>
             3D
           </button>
-          <button className="map-btn" onClick={fitRegion}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/>
-            </svg>
-            Viloyat
-          </button>
         </div>
       </div>
+      <TopCenterNav
+        districts={districts}
+        onRegion={fitRegion}
+        onDistrict={focusDistrict}
+        onPlace={focusPlace}
+        onClear={clearSearchMarker}
+      />
       <div className={`map-legend ${legendOpen ? 'open' : ''}`}>
         <button className="legend-head" onClick={() => setLegendOpen(o => !o)} aria-expanded={legendOpen}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -353,6 +382,131 @@ export function MapPanel({
         )}
       </div>
       {selected && <DeviceDetailCard device={selected} onClose={() => onSelect(null)}/>}
+    </div>
+  );
+}
+
+/* ========================================================
+   Yuqori-markaz panel: tuman tanlash + ko'cha/mahalla qidiruvi
+   ======================================================== */
+type NomRes = {
+  place_id: number;
+  lat: string;
+  lon: string;
+  display_name: string;
+  boundingbox: [string, string, string, string];
+};
+
+function TopCenterNav({ districts, onRegion, onDistrict, onPlace, onClear }: {
+  districts: DistrictSummary[];
+  onRegion: () => void;
+  onDistrict: (name: string) => void;
+  onPlace: (lat: number, lon: number, bb?: [number, number, number, number]) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen]       = useState(false);
+  const [q, setQ]             = useState('');
+  const [results, setResults] = useState<NomRes[] | null>(null);
+  const [busy, setBusy]       = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setResults(null);
+      }
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const search = async () => {
+    const query = q.trim();
+    if (query.length < 3 || busy) return;
+    setBusy(true);
+    setResults(null);
+    setOpen(false);
+    try {
+      // OSM Nominatim — Jizzax viloyati qutisi bilan chegaralangan
+      const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=7'
+        + '&accept-language=uz&countrycodes=uz&bounded=1&viewbox=66.6,41.0,69.35,39.4'
+        + '&q=' + encodeURIComponent(query);
+      const r = await fetch(url, { signal: AbortSignal.timeout(9000) });
+      const data = await r.json();
+      setResults(Array.isArray(data) ? data : []);
+    } catch {
+      setResults([]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pick = (r: NomRes) => {
+    onPlace(Number(r.lat), Number(r.lon), r.boundingbox.map(Number) as [number, number, number, number]);
+    setResults(null);
+  };
+
+  return (
+    <div className="map-ctrl tc" ref={boxRef}>
+      {/* Hudud tanlash */}
+      <div className="mtc-dd">
+        <button className={`map-btn${open ? ' on' : ''}`} onClick={() => { setOpen(o => !o); setResults(null); }} aria-expanded={open}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
+          Tumanlar
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        {open && (
+          <div className="mtc-menu">
+            <button className="mtc-item region" onClick={() => { onRegion(); setOpen(false); }}>Butun viloyat</button>
+            {districts.map(d => (
+              <button key={d.name} className="mtc-item" onClick={() => { onDistrict(d.name); setOpen(false); }}>
+                {stripDistrict(d.name)}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Ko'cha / mahalla qidiruvi */}
+      <div className="mtc-dd">
+        <div className="mtc-search">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') search(); }}
+            placeholder="Ko'cha, mahalla yoki manzil…"
+            aria-label="Manzil qidirish"
+          />
+          {q && (
+            <button className="mtc-x" onClick={() => { setQ(''); setResults(null); onClear(); }} aria-label="Tozalash">&#x2715;</button>
+          )}
+          <button className="mtc-go" onClick={search} disabled={busy || q.trim().length < 3}>
+            {busy ? '…' : 'Qidirish'}
+          </button>
+        </div>
+        {results !== null && (
+          <div className="mtc-menu mtc-results">
+            {results.length === 0 && <div className="mtc-empty">Hech narsa topilmadi</div>}
+            {results.map(r => {
+              const parts = r.display_name.split(',').map(s => s.trim());
+              return (
+                <button key={r.place_id} className="mtc-item" onClick={() => pick(r)}>
+                  <span className="mtc-line1">{parts[0]}</span>
+                  <span className="mtc-line2">{parts.slice(1, 4).join(', ')}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

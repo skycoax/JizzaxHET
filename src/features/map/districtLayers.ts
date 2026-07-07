@@ -69,7 +69,41 @@ export function addDistrictLayers(
     },
   });
 
-  // district-label: overlay karta bilan almashtirildi (ikkilanmani oldini olish uchun)
+  // Tuman nomlari — poligon markazlarida, uzoq/o'rta zoomda ko'rinadi
+  const labelFC = {
+    type: 'FeatureCollection',
+    features: JIZZAX_DISTRICTS.features.map((f) => {
+      const [minX, minY, maxX, maxY] = bboxOf(f);
+      return {
+        type: 'Feature',
+        properties: { short: f.properties[DISTRICT_SHORT_PROP as 'short'] ?? f.properties.app },
+        geometry: { type: 'Point', coordinates: [(minX + maxX) / 2, (minY + maxY) / 2] },
+      };
+    }),
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  map.addSource(`${SRC}-pts`, { type: 'geojson', data: labelFC as any });
+  map.addLayer({
+    id: 'district-label',
+    type: 'symbol',
+    source: `${SRC}-pts`,
+    maxzoom: 12,
+    layout: {
+      'text-field': ['get', 'short'],
+      'text-font': ['Noto Sans Bold'],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      'text-size': ['interpolate', ['linear'], ['zoom'], 6, 10.5, 10, 13.5] as any,
+      'text-letter-spacing': 0.08,
+      'text-transform': 'uppercase',
+      'text-padding': 4,
+    },
+    paint: {
+      'text-color': labelColor,
+      'text-halo-color': haloColor,
+      'text-halo-width': 1.7,
+      'text-opacity': 0.9,
+    },
+  });
 }
 
 /** Jonli yangilanish: tuman ranglarini o'zgartiradi. */
@@ -84,15 +118,19 @@ export function tuneDistrictForStyle(map: maplibregl.Map, style: MapStyleKey): v
   if (!map.getLayer('district-line')) return;
   const isLight = style === 'light';
   const isSat   = style === 'sat';
-  const lineColor = isLight ? '#2255bb' : isSat ? '#ffe066' : '#27d3ee';
+  const lineColor  = isLight ? '#2255bb' : isSat ? '#ffe066' : '#27d3ee';
+  const labelColor = isLight ? '#1a2c55' : isSat ? '#fffbe0' : '#bfeeff';
+  const haloColor  = isLight ? '#ffffff' : '#04141c';
   map.setPaintProperty('district-line-glow', 'line-color', lineColor);
   map.setPaintProperty('district-line', 'line-color', lineColor);
+  if (map.getLayer('district-label')) {
+    map.setPaintProperty('district-label', 'text-color', labelColor);
+    map.setPaintProperty('district-label', 'text-halo-color', haloColor);
+  }
 }
 
-/** Tuman markazini qaytaradi (uchish uchun). */
-export function districtCentroid(appName: string): [number, number] | null {
-  const f = JIZZAX_DISTRICTS.features.find((x) => x.properties.app === appName);
-  if (!f) return null;
+/** Poligon bbox: [minLng, minLat, maxLng, maxLat]. */
+function bboxOf(f: (typeof JIZZAX_DISTRICTS)['features'][number]): [number, number, number, number] {
   let minX = 180, minY = 90, maxX = -180, maxY = -90;
   const walk = (c: unknown): void => {
     if (Array.isArray(c)) {
@@ -104,5 +142,21 @@ export function districtCentroid(appName: string): [number, number] | null {
     }
   };
   walk(f.geometry.coordinates);
+  return [minX, minY, maxX, maxY];
+}
+
+/** Tuman markazini qaytaradi (uchish uchun). */
+export function districtCentroid(appName: string): [number, number] | null {
+  const f = JIZZAX_DISTRICTS.features.find((x) => x.properties.app === appName);
+  if (!f) return null;
+  const [minX, minY, maxX, maxY] = bboxOf(f);
   return [(minX + maxX) / 2, (minY + maxY) / 2];
+}
+
+/** Tuman chegara qutisi — fitBounds uchun. */
+export function districtBounds(appName: string): [[number, number], [number, number]] | null {
+  const f = JIZZAX_DISTRICTS.features.find((x) => x.properties.app === appName);
+  if (!f) return null;
+  const [minX, minY, maxX, maxY] = bboxOf(f);
+  return [[minX, minY], [maxX, maxY]];
 }
