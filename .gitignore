@@ -37,6 +37,9 @@ telegram-bot/persons.json
 *.db-wal
 *.db-shm
 
+# ── Deploy ─────────────────────────────────────────────────
+.vercel/
+
 # ── OS / editor ────────────────────────────────────────────
 .DS_Store
 Thumbs.db
