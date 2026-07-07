@@ -31,7 +31,6 @@ function LoadingScreen() {
 const DEFAULT_SETTINGS: AppSettings = {
   showDistrictStats: true,
   showNotifications: true,
-  autoFlyToAlarm:    true,
 };
 
 interface Props {
@@ -49,11 +48,6 @@ export function AppShell({ user, demoMode, onLogout }: Props) {
   const [settings,      setSettings     ] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [notifications, setNotifications] = useState<AlarmNotification[]>([]);
   const notifiedRef = useRef<Set<string>>(new Set());
-
-  // Joriy ko'rinishni ref orqali kuzatamiz — avariya callback'ida eskirgan
-  // qiymat ishlatilmasligi uchun.
-  const viewRef = useRef(view);
-  viewRef.current = view;
 
   const showOnMap = useCallback((id: string) => {
     setView('monitor');
@@ -81,11 +75,8 @@ export function AppShell({ user, demoMode, onLogout }: Props) {
     if (settings.showNotifications) {
       setNotifications(prev => [notif, ...prev].slice(0, 8));
     }
-    // Avtomatik xaritada ko'rsatish — FAQAT foydalanuvchi monitoring
-    // sahifasida bo'lsa. Boshqa sahifada bo'lsa uni bezovta qilmaymiz.
-    if (settings.autoFlyToAlarm && viewRef.current === 'monitor') {
-      setSelectedId(device.id);
-    }
+    // Avariya popup'ini AVTOMATIK ochmaymiz — kartochka faqat foydalanuvchi
+    // markerni bossa yoki ro'yxatdan tanlasa ochiladi. Bu yerda faqat tost/ovoz.
     if (soundOn) playAlarmBeep();
     sendToBotServer(notif);
   }, [settings, soundOn, sendToBotServer]);
@@ -116,20 +107,21 @@ export function AppShell({ user, demoMode, onLogout }: Props) {
       />
 
       <main className="app-main">
-        {/* Monitoring xaritasi doim dark rejimda — geofazoviy displey uchun */}
-        <div className={`vhost ${view === 'monitor' ? '' : 'hidden'}`} data-theme="dark">
+        {/* Monitoring xaritasi — ilova mavzusi bilan birga dark/light bo'ladi */}
+        <div className={`vhost ${view === 'monitor' ? '' : 'hidden'}`}>
           <MapPanel
             devices={devices} districts={districts} kpis={kpis}
             soundOn={soundOn} selectedId={selectedId} onSelect={setSelectedId}
             active={view === 'monitor'}
             showDistrictStats={settings.showDistrictStats}
             onNewAlarm={handleNewAlarm}
+            theme={theme}
           />
         </div>
 
         {view === 'readings'  && <div className="vhost"><ReadingsPanel devices={devices} readings={readings}/></div>}
         {view === 'events'    && <div className="vhost"><EventsPanel events={events} onSelectDevice={showOnMap}/></div>}
-        {view === 'load'      && <div className="vhost"><LoadPanel loadProfile={loadProfile} kpis={kpis}/></div>}
+        {view === 'load'      && <div className="vhost"><LoadPanel loadProfile={loadProfile} kpis={kpis} theme={theme}/></div>}
         {view === 'losses'    && <div className="vhost"><LossesPanel devices={devices}/></div>}
         {view === 'registry'  && <div className="vhost"><DeviceRegistry devices={devices} onShowOnMap={showOnMap}/></div>}
         {view === 'admin'     && <div className="vhost"><AdminPanel/></div>}

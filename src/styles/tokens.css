@@ -23,10 +23,10 @@
   --muted: #9aa9c2;
   --faint: #64728c;
 
-  /* Brend / urg'u */
-  --accent: #3da9fc;
-  --accent-bg: #0d2a3a;
-  --accent-border: #114155;
+  /* Brend / urg'u — institutsional ko'k (het.uz logotipiga hamohang) */
+  --accent: #2f80d8;
+  --accent-bg: #10243b;
+  --accent-border: #1d3f63;
 
   /* Holat ranglari (svetofor) */
   --ok: #22c97c;
@@ -43,17 +43,21 @@
   --row-active: #0d1a2b;     /* tanlangan qator */
   --hover-2: #13203a;        /* kuchliroq hover (sozlama qatorlari) */
   --line-hover: #2c3d5c;     /* hover chizig'i */
-  --accent-hover: #103246;   /* urg'uli tugma hover foni */
-  --accent-strong: #2a96f0;  /* to'ldirilgan urg'u tugma hover */
+  --accent-hover: #163350;   /* urg'uli tugma hover foni */
+  --accent-strong: #2670c4;  /* to'ldirilgan urg'u tugma hover */
   --pop-bg: #0e1724;         /* popover / sozlamalar paneli */
   --scroll: #22304a;         /* scrollbar thumb */
   --on-accent: #ffffff;      /* urg'u ustidagi matn */
 
-  /* Radius */
-  --r-sm: 7px;
-  --r-md: 10px;
-  --r-lg: 13px;
-  --r-pill: 20px;
+  /* Xarita ustidagi suzuvchi panellar (HUD, legenda, boshqaruv, detal) */
+  --ov-bg: rgba(10, 15, 25, .93);
+  --ov-bg-strong: rgba(9, 14, 23, .96);
+
+  /* Radius — institutsional, sig'iq burchaklar (o'yinchoq-pilllar emas) */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 9px;
+  --r-pill: 6px;
 
   /* Shriftlar */
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -80,10 +84,10 @@
   --muted: #55617a;
   --faint: #8590a4;
 
-  /* Brend / urg'u — oq fonda kontrast uchun biroz quyuqroq */
-  --accent: #0f7fd1;
-  --accent-bg: #e4f0fb;
-  --accent-border: #b3d8f4;
+  /* Brend / urg'u — institutsional ko'k, oq fonda quyuqroq */
+  --accent: #1466a8;
+  --accent-bg: #e2eef8;
+  --accent-border: #a9cded;
 
   /* Holat ranglari — och fonda o'qiladigan darajada quyuqlashtirilgan */
   --ok: #0e9e63;
@@ -91,7 +95,7 @@
   --fault: #d96a15;
   --crit: #dc2f3b;
 
-  --mapbg: #0b1018;
+  --mapbg: #e9edf3;
 
   /* Semantik yuzalar */
   --th-bg: #eef2f8;
@@ -99,11 +103,15 @@
   --row-active: #dcebfb;
   --hover-2: #eaf0f8;
   --line-hover: #bcc7d8;
-  --accent-hover: #d5e9fb;
-  --accent-strong: #0b6fbb;
+  --accent-hover: #d3e6f7;
+  --accent-strong: #0f5490;
   --pop-bg: #ffffff;
   --scroll: #c2ccdb;
   --on-accent: #ffffff;
+
+  /* Kunduzgi mavzuda xarita panellari oq — och basemap ustida o'qiladi */
+  --ov-bg: rgba(255, 255, 255, .93);
+  --ov-bg-strong: rgba(247, 250, 253, .97);
 
   --shadow-pop: 0 12px 40px -14px rgba(20, 32, 56, .30);
 

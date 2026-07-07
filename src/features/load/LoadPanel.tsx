@@ -2,12 +2,21 @@ import { useMemo, useState } from 'react';
 import type { DashboardKpis, LoadPoint } from '@/types';
 import { formatNumber } from '@/lib/utils';
 
-// Tarif zonalari rangi (T1-T3 + T4)
-const T_COLORS = {
-  T1: { bg: '#0d2a4a', border: '#1a5fa0', label: 'T1  22:00-06:00' },
-  T2: { bg: '#3a1a00', border: '#c47a00', label: 'T2  06:00-09:00, 17:00-22:00' },
-  T3: { bg: '#0a2d1a', border: '#226640', label: 'T3  09:00-17:00' },
-};
+// Tarif zonalari rangi — mavzuga qarab (dark/light)
+type TarifPal = { bg: string; border: string; label: string };
+function tarifColors(light: boolean): Record<'T1' | 'T2' | 'T3', TarifPal> {
+  return light
+    ? {
+        T1: { bg: '#dbe8f7', border: '#2f79c2', label: 'T1  22:00-06:00' },
+        T2: { bg: '#f5e6cf', border: '#c98a1e', label: 'T2  06:00-09:00, 17:00-22:00' },
+        T3: { bg: '#d9efe0', border: '#2e9c63', label: 'T3  09:00-17:00' },
+      }
+    : {
+        T1: { bg: '#0d2a4a', border: '#1a5fa0', label: 'T1  22:00-06:00' },
+        T2: { bg: '#3a1a00', border: '#c47a00', label: 'T2  06:00-09:00, 17:00-22:00' },
+        T3: { bg: '#0a2d1a', border: '#226640', label: 'T3  09:00-17:00' },
+      };
+}
 
 function tarif(h: number): 'T1' | 'T2' | 'T3' {
   if (h >= 22 || h < 6) return 'T1';
@@ -19,8 +28,17 @@ const W = 900, H = 280, PAD_L = 62, PAD_R = 16, PAD_T = 24, PAD_B = 36;
 const CHART_W = W - PAD_L - PAD_R;
 const CHART_H = H - PAD_T - PAD_B;
 
-export function LoadPanel({ loadProfile, kpis }: { loadProfile: LoadPoint[]; kpis: DashboardKpis }) {
+export function LoadPanel({ loadProfile, kpis, theme = 'dark' }: { loadProfile: LoadPoint[]; kpis: DashboardKpis; theme?: 'dark' | 'light' }) {
   const [selDay, setSelDay] = useState(0); // 0=bugun
+  const light = theme === 'light';
+  const T_COLORS = tarifColors(light);
+  const C = {
+    grid:  light ? '#dfe5ef' : '#1a2a44',   // gorizontal panjara
+    bound: light ? '#c2ccdb' : '#334466',   // tarif chegaralari
+    axis:  light ? '#6b7688' : '#64728c',   // o'q raqamlari
+    line:  light ? '#1466a8' : '#2f80d8',   // yuklama chizig'i
+    peak:  light ? '#d96a15' : '#ff8c2f',   // cho'qqi markeri
+  };
 
   const dayData = useMemo(() =>
     loadProfile.filter(p => p.dayOffset === selDay).sort((a, b) => a.hour - b.hour),
@@ -85,7 +103,7 @@ export function LoadPanel({ loadProfile, kpis }: { loadProfile: LoadPoint[]; kpi
           {/* Tarif chegaralari */}
           {[6, 9, 17, 22].map(h => (
             <line key={h} x1={x(h)} y1={PAD_T} x2={x(h)} y2={PAD_T + CHART_H}
-              stroke="#334466" strokeWidth="1" strokeDasharray="3 3"/>
+              stroke={C.bound} strokeWidth="1" strokeDasharray="3 3"/>
           ))}
           {/* Grid (yGorizontal) */}
           {[0, 25, 50, 75, 100].map(pct => {
@@ -93,8 +111,8 @@ export function LoadPanel({ loadProfile, kpis }: { loadProfile: LoadPoint[]; kpi
             const yy = y(kw);
             return (
               <g key={pct}>
-                <line x1={PAD_L} y1={yy} x2={W - PAD_R} y2={yy} stroke="#1a2a44" strokeWidth="1"/>
-                <text x={PAD_L - 6} y={yy + 4} textAnchor="end" fill="#64728c" fontSize="10">
+                <line x1={PAD_L} y1={yy} x2={W - PAD_R} y2={yy} stroke={C.grid} strokeWidth="1"/>
+                <text x={PAD_L - 6} y={yy + 4} textAnchor="end" fill={C.axis} fontSize="10">
                   {Math.round(kw / 1000)}
                 </text>
               </g>
@@ -109,31 +127,31 @@ export function LoadPanel({ loadProfile, kpis }: { loadProfile: LoadPoint[]; kpi
           {/* Gradient */}
           <defs>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3da9fc" stopOpacity="0.6"/>
-              <stop offset="100%" stopColor="#3da9fc" stopOpacity="0.02"/>
+              <stop offset="0%" stopColor={C.line} stopOpacity={light ? '0.32' : '0.6'}/>
+              <stop offset="100%" stopColor={C.line} stopOpacity="0.02"/>
             </linearGradient>
           </defs>
           {/* Line */}
           {dayData.length > 1 && (
-            <polyline points={pts} fill="none" stroke="#3da9fc" strokeWidth="2" strokeLinejoin="round"/>
+            <polyline points={pts} fill="none" stroke={C.line} strokeWidth="2" strokeLinejoin="round"/>
           )}
           {/* Cho'qqi markeri */}
           {peakPt && peakPt.kw > 0 && (
             <g>
-              <circle cx={x(peakPt.hour)} cy={y(peakPt.kw)} r="5" fill="var(--fault)" stroke="#fff" strokeWidth="1.5"/>
-              <text x={x(peakPt.hour)} y={y(peakPt.kw) - 10} textAnchor="middle" fill="var(--fault)" fontSize="10" fontWeight="bold">
+              <circle cx={x(peakPt.hour)} cy={y(peakPt.kw)} r="5" fill={C.peak} stroke={light ? '#ffffff' : '#0b1018'} strokeWidth="1.5"/>
+              <text x={x(peakPt.hour)} y={y(peakPt.kw) - 10} textAnchor="middle" fill={C.peak} fontSize="10" fontWeight="bold">
                 {(peakPt.kw / 1000).toFixed(1)} MW
               </text>
             </g>
           )}
           {/* X o'qi soatlari */}
           {[0,3,6,9,12,15,17,18,20,22,23].map(h => (
-            <text key={h} x={x(h)} y={H - 6} textAnchor="middle" fill="#64728c" fontSize="10">
+            <text key={h} x={x(h)} y={H - 6} textAnchor="middle" fill={C.axis} fontSize="10">
               {String(h).padStart(2,'0')}
             </text>
           ))}
           {/* Y o'qi nomi */}
-          <text x={12} y={PAD_T + CHART_H/2} textAnchor="middle" fill="#64728c" fontSize="10"
+          <text x={12} y={PAD_T + CHART_H/2} textAnchor="middle" fill={C.axis} fontSize="10"
             transform={`rotate(-90, 12, ${PAD_T + CHART_H/2})`}>
             MW
           </text>

@@ -1,6 +1,45 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DeviceEvent, EventPriority, EventType } from '@/types';
 import { stripDistrict } from '@/lib/utils';
+
+type Opt = { value: string; label: string; color?: string };
+
+/** Ixcham filtr menyusi — bir tugma ostiga yig'ilgan tanlov ro'yxati. */
+function FilterMenu({ label, value, options, onChange }: {
+  label: string; value: string; options: Opt[]; onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+  const current = options.find(o => o.value === value) ?? options[0];
+  const active = value !== 'all';
+  return (
+    <div className="evf" ref={ref}>
+      <button className={`evf-btn${active ? ' active' : ''}${open ? ' open' : ''}`} onClick={() => setOpen(o => !o)}>
+        <span className="evf-lbl">{label}</span>
+        <span className="evf-val">{active && current.color && <i style={{ background: current.color }}/>}{current.label}</span>
+        <svg className="evf-chev" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {open && (
+        <div className="evf-menu">
+          {options.map(o => (
+            <button key={o.value} className={`evf-opt${o.value === value ? ' on' : ''}`} onClick={() => { onChange(o.value); setOpen(false); }}>
+              <span className="evf-opt-l">{o.color && <i style={{ background: o.color }}/>}{o.label}</span>
+              {o.value === value && (
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const EVENT_COLORS: Record<EventType, string> = {
   offline: 'var(--crit)',
@@ -12,7 +51,7 @@ const EVENT_COLORS: Record<EventType, string> = {
   info:    'var(--accent)',
 };
 const EVENT_LABELS: Record<EventType, string> = {
-  offline: "Aloqa yo'q", fault: 'Nosozlik', theft: "O'g'irlik",
+  offline: "Aloqa yo'q", fault: 'Nosozlik', theft: "O‘g‘irlik",
   overload: 'Yuklanish', restore: 'Tiklangan', warning: 'Ogohlantirish', info: 'Ma\'lumot',
 };
 const PRIO_LABELS: Record<EventPriority, string> = {
@@ -62,6 +101,21 @@ export function EventsPanel({
     setLocalAck(prev => new Set([...prev, ...ids]));
   };
 
+  const PRIO_COLORS: Record<EventPriority, string> = { critical: 'var(--crit)', high: 'var(--fault)', medium: 'var(--warn)', low: 'var(--accent)' };
+  const typeOpts: Opt[] = [
+    { value: 'all', label: 'Barcha tur' },
+    ...(['offline','fault','theft','overload','restore','warning','info'] as EventType[]).map(ty => ({ value: ty, label: EVENT_LABELS[ty], color: EVENT_COLORS[ty] })),
+  ];
+  const ackOpts: Opt[] = [
+    { value: 'all', label: 'Barcha holat' },
+    { value: 'unack', label: 'Tasdiqlanmagan' },
+    { value: 'ack', label: 'Tasdiqlangan' },
+  ];
+  const prioOpts: Opt[] = [
+    { value: 'all', label: 'Barcha daraja' },
+    ...(['critical','high','medium','low'] as EventPriority[]).map(p => ({ value: p, label: PRIO_LABELS[p], color: PRIO_COLORS[p] })),
+  ];
+
   return (
     <div className="evts-wrap">
       {/* Toolbar */}
@@ -83,27 +137,15 @@ export function EventsPanel({
           <div className="evts-count mono">{filtered.length} ta hodisa</div>
         </div>
         <div className="evts-filters">
-          <div className="reg-fgroup">
-            {(['all','offline','fault','theft','overload','restore','warning','info'] as const).map(t => (
-              <button key={t} className={`rfilt${typeF===t?' on':''}`} style={t!=='all'?{'--c':EVENT_COLORS[t]} as React.CSSProperties:undefined} onClick={() => setTypeF(t)}>
-                {t==='all'?'Barcha tur':EVENT_LABELS[t]}
-              </button>
-            ))}
-          </div>
-          <div className="reg-fgroup">
-            {(['all','unack','ack'] as const).map(a => (
-              <button key={a} className={`rfilt${ackF===a?' on':''}`} onClick={() => setAckF(a)}>
-                {a==='all'?'Hammasi':a==='unack'?"Tasdiqlanmagan":'Tasdiqlangan'}
-              </button>
-            ))}
-          </div>
-          <div className="reg-fgroup">
-            {(['all','critical','high','medium','low'] as const).map(p => (
-              <button key={p} className={`rfilt${prioF===p?' on':''}`} onClick={() => setPrioF(p)}>
-                {p==='all'?'Barcha':PRIO_LABELS[p]}
-              </button>
-            ))}
-          </div>
+          <FilterMenu label="Tur" value={typeF} options={typeOpts} onChange={v => setTypeF(v as 'all' | EventType)}/>
+          <FilterMenu label="Holat" value={ackF} options={ackOpts} onChange={v => setAckF(v as 'all' | 'unack' | 'ack')}/>
+          <FilterMenu label="Jiddiylik" value={prioF} options={prioOpts} onChange={v => setPrioF(v as 'all' | EventPriority)}/>
+          {(typeF !== 'all' || ackF !== 'all' || prioF !== 'all') && (
+            <button className="evf-reset" onClick={() => { setTypeF('all'); setAckF('all'); setPrioF('all'); }}>
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              Tozalash
+            </button>
+          )}
         </div>
       </div>
 

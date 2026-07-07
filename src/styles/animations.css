@@ -157,7 +157,6 @@
 
 /* Login sahifasi */
 .login-card { animation: cardPop 0.45s var(--spring); }
-.login-logo { animation: logoPulse 3s ease-in-out infinite; }
 
 /* Toast kirishi */
 .toast-item { animation: toastSlideIn 0.28s var(--spring) !important; }

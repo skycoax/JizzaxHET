@@ -142,20 +142,27 @@ export function registerDeviceImages(map: maplibregl.Map): void {
 export function devicesToFC(devices: Device[]) {
   return {
     type: 'FeatureCollection',
-    features: devices.map((d) => ({
-      type: 'Feature',
-      properties: {
-        id: d.id,
-        type: d.type,
-        status: d.status,
-        bat: d.onBattery && d.status !== 'offline' ? 1 : 0,
-        theft: d.theft ? 1 : 0,
-        over: (d.loadPercent ?? 0) >= 90 && d.status !== 'offline' ? 1 : 0,
-        alarm: d.status === 'offline' || d.status === 'fault' ? 1 : 0,
-        label: d.type === 'business' ? (d.name.length > 20 ? d.name.slice(0, 19) + '…' : d.name) : d.id,
-      },
-      geometry: { type: 'Point', coordinates: [d.lng, d.lat] },
-    })),
+    features: devices.map((d) => {
+      const over = (d.loadPercent ?? 0) >= 90 && d.status !== 'offline' ? 1 : 0;
+      // Ko'rinadigan status: yuklama oshgan TM to'liq to'q sariq (orange) bo'ladi —
+      // ikonaning o'zi ham sariq/yashil emas, balki orange. "Aralash status" bo'lmaydi.
+      const vstatus = over ? 'fault' : d.status;
+      return {
+        type: 'Feature',
+        properties: {
+          id: d.id,
+          type: d.type,
+          status: d.status,
+          vstatus,
+          bat: d.onBattery && d.status !== 'offline' ? 1 : 0,
+          theft: d.theft ? 1 : 0,
+          over,
+          alarm: d.status === 'offline' || d.status === 'fault' ? 1 : 0,
+          label: d.type === 'business' ? (d.name.length > 20 ? d.name.slice(0, 19) + '…' : d.name) : d.id,
+        },
+        geometry: { type: 'Point', coordinates: [d.lng, d.lat] },
+      };
+    }),
   };
 }
 
@@ -172,21 +179,23 @@ export function addDeviceLayers(map: maplibregl.Map, devices: Device[], househol
 
   // Avariya pulsi (canvas, RAF bilan animatsiyalanadi)
   A({ id: 'dev-pulse', type: 'circle', source: DEV_SRC, filter: ['==', ['get', 'alarm'], 1], paint: { 'circle-color': statusColor as any, 'circle-opacity': 0.4, 'circle-radius': 18, 'circle-pitch-alignment': 'map' } });
-  // Yuklanish halqasi
-  A({ id: 'dev-over', type: 'circle', source: DEV_SRC, filter: ['all', ['==', ['get', 'over'], 1]], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': STATUS_FILL.fault, 'circle-stroke-width': 2.2, 'circle-stroke-opacity': 0.9, 'circle-radius': 19, 'circle-pitch-alignment': 'map' } });
+  // Yuklanish halqasi — to'yingan orange tashqi doira
+  A({ id: 'dev-over', type: 'circle', source: DEV_SRC, filter: ['all', ['==', ['get', 'over'], 1]], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': STATUS_FILL.fault, 'circle-stroke-width': 2.8, 'circle-stroke-opacity': 1, 'circle-radius': 19, 'circle-pitch-alignment': 'map' } });
+  // Fokus halqasi — tanlangan turkumdagi BARCHA TMlar bir xil rangda belgilanadi
+  A({ id: 'dev-focus-ring', type: 'circle', source: DEV_SRC, filter: ['==', ['get', 'id'], '___'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#ff8c2f', 'circle-stroke-width': 3, 'circle-stroke-opacity': 0.95, 'circle-radius': Z(16, 25) as any, 'circle-pitch-alignment': 'map' } });
   // Tanlangan qurilma halqasi
-  A({ id: 'dev-selected', type: 'circle', source: DEV_SRC, filter: ['==', ['get', 'id'], '___'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#3da9fc', 'circle-stroke-width': 2.6, 'circle-stroke-opacity': 0.95, 'circle-radius': Z(17, 26) as any } });
+  A({ id: 'dev-selected', type: 'circle', source: DEV_SRC, filter: ['==', ['get', 'id'], '___'], paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#2f80d8', 'circle-stroke-width': 2.6, 'circle-stroke-opacity': 0.95, 'circle-radius': Z(17, 26) as any } });
   // Maishiy (zoomdan keyin)
-  A({ id: 'dev-house', type: 'symbol', source: DEV_SRC, minzoom: householdZoom, filter: ['==', ['get', 'type'], 'household'], layout: { 'icon-image': ['concat', 'house-', ['get', 'status']], 'icon-size': Z(0.85, 1.15) as any, 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+  A({ id: 'dev-house', type: 'symbol', source: DEV_SRC, minzoom: householdZoom, filter: ['==', ['get', 'type'], 'household'], layout: { 'icon-image': ['concat', 'house-', ['get', 'vstatus']], 'icon-size': Z(0.85, 1.15) as any, 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
   // Tadbirkorlik
-  A({ id: 'dev-biz', type: 'symbol', source: DEV_SRC, filter: ['==', ['get', 'type'], 'business'], layout: { 'icon-image': ['concat', 'biz-', ['get', 'status']], 'icon-size': Z(0.85, 1.2) as any, 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
-  // TP konsentratorlar
-  A({ id: 'dev-tp', type: 'symbol', source: DEV_SRC, filter: ['==', ['get', 'type'], 'concentrator'], layout: { 'icon-image': ['concat', 'tp-', ['get', 'status']], 'icon-size': Z(0.82, 1.22) as any, 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+  A({ id: 'dev-biz', type: 'symbol', source: DEV_SRC, filter: ['==', ['get', 'type'], 'business'], layout: { 'icon-image': ['concat', 'biz-', ['get', 'vstatus']], 'icon-size': Z(0.85, 1.2) as any, 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
+  // TP konsentratorlar — ikona rangi vstatus bo'yicha (yuklama oshgan → orange)
+  A({ id: 'dev-tp', type: 'symbol', source: DEV_SRC, filter: ['==', ['get', 'type'], 'concentrator'], layout: { 'icon-image': ['concat', 'tp-', ['get', 'vstatus']], 'icon-size': Z(0.82, 1.22) as any, 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
   // Badge'lar
   A({ id: 'dev-bat', type: 'symbol', source: DEV_SRC, filter: ['==', ['get', 'bat'], 1], layout: { 'icon-image': 'b-bat', 'icon-size': Z(0.85, 1.1) as any, 'icon-offset': [-13, -13], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
   A({ id: 'dev-theft', type: 'symbol', source: DEV_SRC, filter: ['==', ['get', 'theft'], 1], layout: { 'icon-image': 'b-theft', 'icon-size': Z(0.85, 1.1) as any, 'icon-offset': [13, 13], 'icon-allow-overlap': true, 'icon-ignore-placement': true } });
-  // Yorliqlar: TP IDsi (canvas matn — to'qnashuvda avtomatik yashirinadi)
-  A({ id: 'dev-label-tp', type: 'symbol', source: DEV_SRC, minzoom: 8.4, filter: ['==', ['get', 'type'], 'concentrator'], layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Bold'], 'text-size': Z(9.5, 12) as any, 'text-offset': [0, 1.55], 'text-anchor': 'top', 'text-letter-spacing': 0.04 }, paint: { 'text-color': '#eaf6ff', 'text-halo-color': '#04141c', 'text-halo-width': 1.6 } });
+  // Yorliqlar: TM IDsi — faqat yaqinlashganda ko'rinadi, to'qnashuvda ikonaga yon beradi
+  A({ id: 'dev-label-tp', type: 'symbol', source: DEV_SRC, minzoom: 10.2, filter: ['==', ['get', 'type'], 'concentrator'], layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Bold'], 'text-size': Z(10, 12) as any, 'text-offset': [0, 1.55], 'text-anchor': 'top', 'text-letter-spacing': 0.04, 'text-optional': true, 'text-padding': 6 }, paint: { 'text-color': '#eaf6ff', 'text-halo-color': '#04141c', 'text-halo-width': 1.9 } });
   A({ id: 'dev-label-biz', type: 'symbol', source: DEV_SRC, minzoom: 11.5, filter: ['==', ['get', 'type'], 'business'], layout: { 'text-field': ['get', 'label'], 'text-font': ['Noto Sans Bold'], 'text-size': 11, 'text-offset': [0, 1.3], 'text-anchor': 'top' }, paint: { 'text-color': '#ffe9b8', 'text-halo-color': '#1a1206', 'text-halo-width': 1.6 } });
   /* eslint-enable @typescript-eslint/no-explicit-any */
 }
@@ -204,12 +213,13 @@ export function tuneLabelsForStyle(map: maplibregl.Map, light: boolean): void {
 export function applyDeviceFocus(map: maplibregl.Map, focus: SitFocus): void {
   if (!map.getLayer('dev-tp')) return;
   type Expr = number | unknown[];
-  const by = (cond: unknown[]): Expr => ['case', cond, 1, 0.07];
+  // Mos kelmaganlar butunlay yo'qoladi (0), faqat tanlangan turkum qoladi.
+  const by = (cond: unknown[]): Expr => ['case', cond, 1, 0];
   let tp: Expr = 1, biz: Expr = 1, house: Expr = 1;
-  if (focus === 'battery') { tp = by(['==', ['get', 'bat'], 1]); biz = 0.07; house = 0.05; }
-  else if (focus === 'overload') { tp = by(['==', ['get', 'over'], 1]); biz = by(['==', ['get', 'over'], 1]); house = 0.05; }
-  else if (focus === 'theft') { tp = by(['==', ['get', 'theft'], 1]); biz = 0.07; house = 0.05; }
-  else if (focus === 'offline') { tp = by(['==', ['get', 'status'], 'offline']); biz = 0.07; house = 0.05; }
+  if (focus === 'battery') { tp = by(['==', ['get', 'bat'], 1]); biz = 0; house = 0; }
+  else if (focus === 'overload') { tp = by(['==', ['get', 'over'], 1]); biz = 0; house = 0; }
+  else if (focus === 'theft') { tp = by(['==', ['get', 'theft'], 1]); biz = 0; house = 0; }
+  else if (focus === 'offline') { tp = by(['==', ['get', 'status'], 'offline']); biz = 0; house = 0; }
   else if (focus === 'lines') { tp = 0.95; biz = 0.2; house = 0.05; }
   /* eslint-disable @typescript-eslint/no-explicit-any */
   map.setLayoutProperty('dev-tp', 'icon-allow-overlap', true);
@@ -218,9 +228,23 @@ export function applyDeviceFocus(map: maplibregl.Map, focus: SitFocus): void {
   map.setPaintProperty('dev-biz', 'icon-opacity', biz as any);
   map.setPaintProperty('dev-label-biz', 'text-opacity', biz as any);
   map.setPaintProperty('dev-house', 'icon-opacity', house as any);
-  const badgeDim = focus !== null && focus !== 'battery' && focus !== 'theft';
-  map.setPaintProperty('dev-bat', 'icon-opacity', focus === null || focus === 'battery' ? 1 : badgeDim ? 0.07 : 1);
-  map.setPaintProperty('dev-theft', 'icon-opacity', focus === null || focus === 'theft' ? 1 : 0.07);
-  map.setPaintProperty('dev-over', 'circle-stroke-opacity', focus === null || focus === 'overload' ? 0.9 : 0.05);
+  map.setPaintProperty('dev-bat', 'icon-opacity', focus === null || focus === 'battery' ? 1 : 0);
+  map.setPaintProperty('dev-theft', 'icon-opacity', focus === null || focus === 'theft' ? 1 : 0);
+  map.setPaintProperty('dev-over', 'circle-stroke-opacity', focus === null || focus === 'overload' ? 1 : 0);
+
+  // Fokus halqasi — tanlangan turkumning BARCHA TMlarini bir xil rangda belgilaydi
+  if (map.getLayer('dev-focus-ring')) {
+    const FOCUS_COLOR: Record<string, string> = { battery: '#22d3ee', overload: '#ff8c2f', theft: '#b06bff', offline: '#ff4d57' };
+    const preds: Record<string, unknown[]> = {
+      battery:  ['==', ['get', 'bat'], 1],
+      overload: ['==', ['get', 'over'], 1],
+      theft:    ['==', ['get', 'theft'], 1],
+      offline:  ['==', ['get', 'status'], 'offline'],
+    };
+    const active = focus && preds[focus] ? focus : null;
+    map.setFilter('dev-focus-ring', (active ? preds[active] : ['==', ['get', 'id'], '___']) as any);
+    map.setPaintProperty('dev-focus-ring', 'circle-stroke-color', active ? FOCUS_COLOR[active] : '#ff8c2f');
+    map.setPaintProperty('dev-focus-ring', 'circle-stroke-opacity', active ? 0.95 : 0);
+  }
   /* eslint-enable @typescript-eslint/no-explicit-any */
 }

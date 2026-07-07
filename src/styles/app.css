@@ -40,25 +40,24 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 }
 .sidebar.collapsed { flex-basis: 68px; width: 68px; }
 
-/* Brend */
-.s-brand { display: flex; align-items: center; gap: 12px; padding: 15px 15px 14px; border-bottom: 1px solid var(--line); }
-.s-logo { width: 38px; height: 38px; border-radius: 10px; flex: 0 0 auto; display: grid; place-items: center; background: radial-gradient(120% 120% at 30% 20%, #15455a, #0a242f); border: 1px solid #2b6c85; color: #3da9fc; box-shadow: inset 0 0 12px #3da9fc22; }
-.s-logo svg { width: 21px; height: 21px; }
-.s-brand-text { flex: 1; min-width: 0; }
-.s-brand-text h1 { font-size: 14.5px; font-weight: 700; letter-spacing: .3px; line-height: 1.05; color: var(--text); white-space: nowrap; }
-.s-brand-text p { font-size: 8.5px; color: var(--muted); letter-spacing: .9px; text-transform: uppercase; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Brend — oq letterhead bandi (institutsional lockup) */
+.s-brand { display: flex; align-items: center; justify-content: center; gap: 11px; padding: 15px 14px; background: #ffffff; border-bottom: 1px solid var(--line); }
+.s-logo { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; }
+.s-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.s-brand-text { flex: 0 1 auto; min-width: 0; }
+.s-brand-text h1 { font-size: 15px; font-weight: 800; letter-spacing: .3px; line-height: 1.05; color: #0e3a66; white-space: nowrap; }
+.s-brand-text p { font-size: 9px; font-weight: 600; color: #3f82c4; letter-spacing: 1px; text-transform: uppercase; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .s-collapse { flex: 0 0 auto; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer; transition: .14s; }
 .s-collapse:hover { color: var(--text); border-color: var(--line-hover); }
 
 /* Navigatsiya */
 .s-nav { flex: 0 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 12px 12px 6px; display: flex; flex-direction: column; }
 .s-group { display: flex; flex-direction: column; gap: 2px; }
-.s-group + .s-group { margin-top: 13px; }
+.s-group + .s-group { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
 .s-group-title { font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--faint); padding: 4px 10px 5px; }
 .s-item { position: relative; display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: var(--r-md); cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; letter-spacing: .1px; color: var(--muted); background: none; border: none; text-align: left; transition: background .14s, color .14s; }
 .s-item:hover { color: var(--text); background: var(--row-hover); }
 .s-item.on { color: var(--accent); background: var(--accent-bg); }
-.s-item.on::before { content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 18px; border-radius: 0 3px 3px 0; background: var(--accent); }
 .s-ico { flex: 0 0 auto; width: 18px; height: 18px; display: grid; place-items: center; }
 .s-ico svg { width: 18px; height: 18px; opacity: .9; }
 .s-item.on .s-ico svg { opacity: 1; }
@@ -67,39 +66,39 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 
 .s-spacer { flex: 1 1 auto; min-height: 6px; }
 
-/* Tizim holati */
-.s-status { display: flex; align-items: center; gap: 10px; margin: 0 12px 8px; padding: 9px 11px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); }
-.s-status-pill { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; transition: background .4s; }
-.s-status-body { flex: 1; min-width: 0; }
+/* Tizim holati + vaqt — bitta karta */
+.s-status { display: flex; flex-direction: column; gap: 5px; margin: 0 12px 10px; padding: 9px 11px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); }
+.s-status-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .s-status-lbl { font-size: 8.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); }
-.s-status-val { font-size: 12.5px; font-weight: 700; letter-spacing: .4px; margin-top: 1px; }
-.s-livetag { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; font-size: 8.5px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); }
-.s-livedot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); animation: beat 1.8s infinite; }
+.s-livetag { display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; font-size: 8.5px; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); }
+.s-livedot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); animation: beat 1.8s infinite; }
 .s-livetag.demo { color: var(--warn); }
 .s-livetag.demo .s-livedot { background: var(--warn); }
-.s-clock { display: flex; align-items: baseline; gap: 8px; padding: 0 16px 12px; }
-.s-clock-t { font-size: 18px; font-weight: 600; color: var(--text); }
-.s-clock-d { font-size: 10.5px; color: var(--muted); letter-spacing: .3px; }
+.s-status-mid { display: flex; align-items: center; gap: 7px; }
+.s-status-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; transition: background .4s; }
+.s-status-val { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; letter-spacing: .4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-status-time { font-size: 13px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.s-status-date { font-size: 10px; color: var(--muted); letter-spacing: .2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Boshqaruv tugmalari (ikonalar qatori) */
+/* Boshqaruv — bitta qator teng kvadratlar */
 .s-controls { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line); }
-.s-ctrl { flex: 1; display: grid; place-items: center; height: 34px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer; transition: .14s; }
+.s-ctrl { flex: 1; display: flex; align-items: center; justify-content: center; height: 34px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer; transition: .14s; }
 .s-ctrl:hover { color: var(--text); border-color: var(--line-hover); }
 .s-ctrl.on { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
-.s-ctrl svg { width: 16px; height: 16px; }
+.s-ctrl svg { width: 16px; height: 16px; flex: 0 0 auto; }
 .s-ctrl-label { display: none; }
 .s-ctrl-pop { flex: 1; position: relative; display: flex; }
 .s-ctrl-pop .s-ctrl { width: 100%; }
 .s-ctrl-pop .settings-panel { top: auto; bottom: 0; right: auto; left: calc(100% + 14px); width: 288px; }
 
-/* Foydalanuvchi */
-.s-user { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-top: 1px solid var(--line); }
-.s-ava { width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; font-size: 14px; font-weight: 700; background: var(--accent-bg); border: 1.5px solid var(--accent); color: var(--accent); }
-.s-ava.demo { background: color-mix(in srgb, var(--warn) 14%, transparent); border-color: var(--warn); color: var(--warn); }
+/* Foydalanuvchi + chiqish */
+.s-user { display: flex; align-items: center; gap: 10px; padding: 11px 14px 13px; border-top: 1px solid var(--line); }
+.s-ava { width: 36px; height: 36px; border-radius: 50%; flex: 0 0 auto; display: grid; place-items: center; font-size: 15px; font-weight: 700; background: var(--accent); border: none; color: #fff; box-shadow: 0 0 0 3px var(--accent-bg); }
+.s-ava.demo { background: var(--warn); color: #fff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent); }
 .s-user-body { flex: 1; min-width: 0; }
 .s-user-name { font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .s-user-role { font-size: 10px; color: var(--muted); margin-top: 1px; }
-.s-logout { flex: 0 0 auto; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--line); background: none; color: var(--muted); cursor: pointer; transition: .14s; }
+.s-logout { flex: 0 0 auto; width: 30px; height: 30px; display: grid; place-items: center; border-radius: var(--r-sm); border: 1px solid var(--line); background: none; color: var(--muted); cursor: pointer; transition: .14s; }
 .s-logout:hover { color: var(--crit); border-color: var(--crit); }
 
 /* ── Yig'ilgan holat (faqat ikonalar) ── */
@@ -110,10 +109,12 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 .sidebar.collapsed .s-item { justify-content: center; padding: 11px 0; gap: 0; }
 .sidebar.collapsed .s-label { display: none; }
 .sidebar.collapsed .s-badge { position: absolute; top: 3px; right: 7px; min-width: 15px; height: 15px; font-size: 8.5px; padding: 0 4px; }
-.sidebar.collapsed .s-status { justify-content: center; margin: 0 10px 8px; padding: 9px 6px; }
-.sidebar.collapsed .s-status-body,
-.sidebar.collapsed .s-livetag,
-.sidebar.collapsed .s-clock,
+.sidebar.collapsed .s-status { margin: 0 10px 8px; padding: 8px 6px; gap: 0; }
+.sidebar.collapsed .s-status-mid { justify-content: center; }
+.sidebar.collapsed .s-status-top,
+.sidebar.collapsed .s-status-val,
+.sidebar.collapsed .s-status-time,
+.sidebar.collapsed .s-status-date,
 .sidebar.collapsed .s-user-body { display: none; }
 .sidebar.collapsed .s-controls { flex-direction: column; }
 .sidebar.collapsed .s-user { flex-direction: column; gap: 9px; padding: 12px 8px; }
@@ -213,7 +214,7 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 
 /* zone bubble */
 .zone-icon { background: none; border: none; }
-.zone-bubble { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid; background: rgba(13,20,33,.93); box-shadow: 0 4px 14px rgba(0,0,0,.6); cursor: pointer; line-height: 1; }
+.zone-bubble { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid; background: var(--ov-bg); box-shadow: 0 4px 14px rgba(0,0,0,.6); cursor: pointer; line-height: 1; }
 .zone-bubble b { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--text); }
 .zone-bubble span { font-size: 7.5px; color: var(--muted); margin-top: 1px; max-width: 44px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .zone-bubble.z-online { border-color: var(--ok); }
@@ -225,25 +226,31 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 /* overlay controls */
 .map-ctrl { position: absolute; z-index: 600; display: flex; flex-direction: column; gap: 8px; }
 .map-ctrl.tr { top: 12px; right: 12px; align-items: flex-end; }
-.map-seg { display: flex; background: rgba(13,20,33,.93); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; box-shadow: var(--shadow-pop); }
+.map-seg { display: flex; background: var(--ov-bg); border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; box-shadow: var(--shadow-pop); }
 .map-seg button { font-family: inherit; font-size: 11.5px; color: var(--muted); background: none; border: none; padding: 7px 11px; cursor: pointer; border-right: 1px solid var(--line); transition: .12s; white-space: nowrap; }
 .map-seg button:last-child { border-right: none; }
 .map-seg button:hover { color: var(--text); background: var(--hover-2); }
 .map-seg button.on { color: var(--accent); background: var(--accent-bg); }
-.map-btn { display: flex; align-items: center; gap: 7px; font-family: inherit; font-size: 11.5px; color: var(--muted); background: rgba(13,20,33,.93); border: 1px solid var(--line); border-radius: var(--r-md); padding: 7px 11px; cursor: pointer; box-shadow: var(--shadow-pop); transition: .12s; white-space: nowrap; }
+.map-btn { display: flex; align-items: center; gap: 7px; font-family: inherit; font-size: 11.5px; color: var(--muted); background: var(--ov-bg); border: 1px solid var(--line); border-radius: var(--r-md); padding: 7px 11px; cursor: pointer; box-shadow: var(--shadow-pop); transition: .12s; white-space: nowrap; }
 .map-btn:hover { color: var(--text); border-color: var(--line-hover); }
 .map-btn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 .map-btn svg { width: 14px; height: 14px; }
 
 /* legend */
-.map-legend { position: absolute; left: 12px; bottom: 16px; z-index: 600; background: rgba(13,20,33,.93); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; box-shadow: var(--shadow-pop); }
+.map-legend { position: absolute; left: 12px; bottom: 16px; z-index: 600; background: var(--ov-bg); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); overflow: hidden; backdrop-filter: blur(4px); }
+.legend-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: .3px; color: var(--muted); background: none; border: none; cursor: pointer; }
+.legend-head:hover { color: var(--text); }
+.legend-head > svg { flex: 0 0 auto; width: 14px; height: 14px; }
+.legend-chevron { margin-left: auto; transition: transform .2s; }
+.map-legend.open .legend-chevron { transform: rotate(180deg); }
+.legend-body { padding: 4px 12px 10px; border-top: 1px solid var(--line-soft); animation: subIn .2s; }
 .map-legend .lt { font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--faint); margin-bottom: 7px; }
 .map-legend .li { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--muted); margin-top: 5px; }
 .map-legend .li i { width: 10px; height: 10px; border-radius: 50%; }
 .map-hint { margin-top: 8px; font-size: 10px; color: var(--faint); border-top: 1px solid var(--line-soft); padding-top: 7px; max-width: 190px; line-height: 1.45; }
 
 /* detail card */
-.map-detail { position: absolute; right: 12px; bottom: 16px; z-index: 650; width: 290px; background: linear-gradient(160deg, #111b2c, #0d1422); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); overflow: hidden; }
+.map-detail { position: absolute; right: 12px; bottom: 16px; z-index: 650; width: 290px; background: var(--ov-bg); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-pop); overflow: hidden; }
 .map-detail .dh { display: flex; align-items: flex-start; gap: 10px; padding: 13px 14px; border-bottom: 1px solid var(--line); }
 .map-detail .dh .id { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
 .map-detail .dh h4 { font-size: 14px; font-weight: 600; margin-top: 2px; }
@@ -316,7 +323,7 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 .aanalysis .block { margin-top: 10px; }
 .aanalysis .block .bl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
 .aanalysis .block .bt { font-size: 12px; line-height: 1.5; color: var(--text); }
-.aanalysis .block.action .bt { color: #cfe6ff; }
+.aanalysis .block.action .bt { color: var(--accent); }
 .aanalysis .resp2 { margin-top: 11px; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 9px 10px; }
 .aanalysis .resp2 .rl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); }
 .aanalysis .resp2 .rn { font-size: 12px; font-weight: 600; margin-top: 2px; }
@@ -361,12 +368,20 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 /* ============================================================
    MapLibre (3D vektor) — marker o'lchamlari va kontrol uslublari
    ============================================================ */
-.map-root { background: #05070e; }
+.map-root { background: var(--mapbg); }
 .maplibregl-canvas { outline: none; }
 .maplibregl-ctrl-group { background: #0e1726 !important; border: 1px solid var(--line) !important; box-shadow: var(--shadow-pop) !important; }
 .maplibregl-ctrl-group button { background: #0e1726 !important; border-color: var(--line) !important; }
 .maplibregl-ctrl-group button + button { border-top: 1px solid var(--line) !important; }
 .maplibregl-ctrl button .maplibregl-ctrl-icon { filter: invert(0.82) hue-rotate(160deg); }
+/* Kunduzgi mavzuda xarita boshqaruvlari ham och bo'ladi */
+[data-theme="light"] .maplibregl-ctrl-group,
+[data-theme="light"] .maplibregl-ctrl-group button { background: var(--ov-bg) !important; border-color: var(--line) !important; }
+[data-theme="light"] .maplibregl-ctrl button .maplibregl-ctrl-icon { filter: none; }
+[data-theme="light"] .maplibregl-ctrl-attrib,
+[data-theme="light"] .maplibregl-ctrl-attrib.maplibregl-compact { background: rgba(255,255,255,.8) !important; }
+[data-theme="light"] .maplibregl-ctrl-attrib a { color: var(--muted) !important; }
+[data-theme="light"] .maplibregl-ctrl-attrib-button { filter: none; }
 .maplibregl-ctrl-attrib.maplibregl-compact { background: rgba(8,12,20,.8) !important; }
 .maplibregl-ctrl-attrib { background: rgba(8,12,20,.7) !important; font-size: 9px !important; }
 .maplibregl-ctrl-attrib a { color: var(--muted) !important; }
@@ -459,7 +474,7 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
 .rd-block { margin-top: 9px; }
 .rd-block .bl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); margin-bottom: 3px; }
 .rd-block .bt { font-size: 11.5px; line-height: 1.5; color: var(--text); }
-.rd-block.action .bt { color: #cfe6ff; }
+.rd-block.action .bt { color: var(--accent); }
 .rd-resp { margin-top: 13px; background: var(--card-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 11px; }
 .rd-resp .rl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); }
 .rd-resp .rn { font-size: 13px; font-weight: 600; margin-top: 3px; }
@@ -480,30 +495,50 @@ aside { background: var(--panel); display: flex; flex-direction: column; overflo
    ============================================================ */
 .vhost > .map-wrap { flex: 1; height: auto; }
 
-/* --- HUD: 5 kategoriya kartasi --- */
-.sit-hud { position: absolute; left: 14px; top: 14px; z-index: 660; display: flex; flex-direction: column; gap: 9px; width: 268px; }
-.sit-title { font-size: 9.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); padding: 0 2px 1px; text-shadow: 0 1px 6px #000; }
-.sit-card { --c: var(--accent); position: relative; display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 11px 13px; background: rgba(9,15,26,.92); border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: 12px; cursor: pointer; transition: .16s; box-shadow: var(--shadow-pop); font-family: inherit; color: var(--text); overflow: hidden; backdrop-filter: blur(4px); }
-.sit-card:hover { border-color: color-mix(in srgb, var(--c) 55%, var(--line)); transform: translateX(2px); }
-.sit-card.on { background: color-mix(in srgb, var(--c) 11%, rgba(9,15,26,.95)); border-color: var(--c); }
-.sit-card.on::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, color-mix(in srgb, var(--c) 18%, transparent) 50%, transparent 70%); animation: sweep 2.6s infinite; pointer-events: none; }
-@keyframes sweep { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-.sit-card .ic { width: 36px; height: 36px; flex: 0 0 auto; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); box-shadow: inset 0 0 12px color-mix(in srgb, var(--c) 25%, transparent); }
-.sit-card .ic svg { width: 19px; height: 19px; }
+/* --- HUD: vaziyat monitoringi turkumlari (ixcham, yig'iladigan) --- */
+.sit-hud { position: absolute; left: 14px; top: 14px; z-index: 660; display: flex; flex-direction: column; gap: 7px; width: 244px; }
+.sit-toggle { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 11px; background: var(--ov-bg-strong); border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--muted); font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; cursor: pointer; box-shadow: var(--shadow-pop); backdrop-filter: blur(4px); }
+.sit-toggle:hover { color: var(--text); border-color: var(--line-hover); }
+.sit-toggle-lbl { flex: 1; text-align: left; }
+.sit-chevron { flex: 0 0 auto; transition: transform .2s; }
+.sit-hud.mini .sit-chevron { transform: rotate(180deg); }
+.sit-cards { display: flex; flex-direction: column; gap: 7px; }
+.sit-slot { display: flex; flex-direction: column; }
+
+.sit-card { --c: var(--accent); position: relative; display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; padding: 9px 11px; background: var(--ov-bg); border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: var(--r-sm); cursor: pointer; transition: border-color .16s, background .16s; box-shadow: var(--shadow-pop); font-family: inherit; color: var(--text); overflow: hidden; backdrop-filter: blur(4px); }
+.sit-card:hover { border-color: color-mix(in srgb, var(--c) 55%, var(--line)); }
+.sit-card.on { background: color-mix(in srgb, var(--c) 12%, var(--ov-bg-strong)); border-color: var(--c); }
+.sit-card .ic { width: 30px; height: 30px; flex: 0 0 auto; border-radius: var(--r-sm); display: grid; place-items: center; background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); }
+.sit-card .ic svg { width: 16px; height: 16px; }
 .sit-card .nm { display: flex; flex-direction: column; min-width: 0; }
-.sit-card .nm .n { font-size: 22px; font-weight: 700; line-height: 1; color: var(--c); display: flex; align-items: baseline; gap: 4px; }
-.sit-card .nm .n em { font-style: normal; font-size: 11px; color: var(--muted); }
-.sit-card .nm .l { font-size: 9.5px; color: var(--muted); letter-spacing: .7px; text-transform: uppercase; margin-top: 4px; line-height: 1.3; }
+.sit-card .nm .n { font-size: 19px; font-weight: 700; line-height: 1; color: var(--c); font-variant-numeric: tabular-nums; }
+.sit-card .nm .l { font-size: 9px; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; margin-top: 3px; line-height: 1.3; }
+/* 0 bo'lsa — tinch holat (qizil/rangli emas) */
+.sit-card.zero { border-left-color: var(--line); }
+.sit-card.zero .n { color: var(--muted); }
+.sit-card.zero .ic { background: color-mix(in srgb, var(--muted) 12%, transparent); color: var(--muted); }
+
+/* Yig'ilgan (mini) rejim — kichik gorizontal chiplar, faqat son */
+.sit-hud.mini { width: auto; }
+.sit-hud.mini .sit-cards { flex-direction: row; gap: 6px; }
+.sit-hud.mini .sit-slot { flex: 0 0 auto; }
+.sit-hud.mini .sit-card { padding: 7px 9px; gap: 8px; }
+.sit-hud.mini .sit-card .ic { width: 24px; height: 24px; }
+.sit-hud.mini .sit-card .ic svg { width: 14px; height: 14px; }
+.sit-hud.mini .sit-card .nm .l { display: none; }
+.sit-hud.mini .sit-card .nm .n { font-size: 17px; }
+
 .pop { display: inline-block; animation: pop .5s cubic-bezier(.2,1.6,.4,1); }
-@keyframes pop { 0% { transform: scale(1.45); filter: brightness(1.6); } 100% { transform: scale(1); } }
+@keyframes pop { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
 
 /* O'chgan TPlar joylashuvlari ro'yxati */
-.sit-sub { margin-top: 6px; background: rgba(9,15,26,.95); border: 1px solid var(--line); border-radius: 11px; max-height: 230px; overflow-y: auto; padding: 6px; box-shadow: var(--shadow-pop); animation: subIn .25s; }
+.sit-sub { margin-top: 6px; background: var(--ov-bg-strong); border: 1px solid var(--line); border-radius: 11px; max-height: 230px; overflow-y: auto; padding: 6px; box-shadow: var(--shadow-pop); animation: subIn .25s; }
 @keyframes subIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .sit-sub .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 9px; border-radius: 8px; cursor: pointer; font-size: 11.5px; transition: .12s; }
 .sit-sub .row:hover { background: var(--hover-2); }
 .sit-sub .row .nm2 { display: flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sit-sub .row .nm2 i { width: 8px; height: 8px; border-radius: 50%; background: var(--crit); flex: 0 0 auto; animation: beat 1.4s infinite; }
+.sit-sub .row .nm2 i { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--crit)); flex: 0 0 auto; animation: beat 1.4s infinite; }
+.sit-sub-empty { padding: 12px 10px; text-align: center; font-size: 11px; color: var(--faint); }
 .sit-sub .row .ds { font-size: 10px; color: var(--muted); white-space: nowrap; }
 
 /* --- Marker badge'lari va yuklanish halqasi --- */
@@ -722,6 +757,28 @@ th.fixed-col { z-index: 4; }
 .eack-btn:hover { background: var(--accent-hover); }
 .evts-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 60px; color: var(--faint); font-size: 13px; }
 
+/* Hodisalar filtr menyulari (dropdown) — barcha chiplar bitta tugma ostida */
+.evts-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.evf { position: relative; }
+.evf-btn { display: inline-flex; align-items: center; gap: 8px; font-family: inherit; font-size: 12px; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 7px 11px; cursor: pointer; transition: border-color .12s, background .12s; }
+.evf-btn:hover { border-color: var(--line-hover); }
+.evf-btn.open { border-color: var(--accent); }
+.evf-btn.active { border-color: var(--accent); background: var(--accent-bg); }
+.evf-lbl { font-size: 9px; letter-spacing: .8px; text-transform: uppercase; color: var(--faint); }
+.evf-btn.active .evf-lbl { color: var(--accent); }
+.evf-val { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.evf-val i { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+.evf-chev { color: var(--faint); transition: transform .18s; }
+.evf-btn.open .evf-chev { transform: rotate(180deg); }
+.evf-menu { position: absolute; top: calc(100% + 5px); left: 0; z-index: 40; min-width: 190px; background: var(--pop-bg); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-pop); padding: 5px; animation: slideDown .16s ease-out; }
+.evf-opt { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; font-family: inherit; font-size: 12.5px; color: var(--muted); background: none; border: none; border-radius: var(--r-sm); padding: 7px 9px; cursor: pointer; text-align: left; transition: background .1s, color .1s; }
+.evf-opt:hover { background: var(--row-hover); color: var(--text); }
+.evf-opt.on { color: var(--accent); background: var(--accent-bg); }
+.evf-opt-l { display: inline-flex; align-items: center; gap: 8px; }
+.evf-opt-l i { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
+.evf-reset { display: inline-flex; align-items: center; gap: 6px; font-family: inherit; font-size: 11.5px; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 7px 10px; cursor: pointer; transition: .12s; }
+.evf-reset:hover { color: var(--crit); border-color: var(--crit); }
+
 /* ============================================================
    YUKLANISH MONITORINGI PANELI
    ============================================================ */
@@ -759,7 +816,7 @@ th.fixed-col { z-index: 4; }
    ============================================================ */
 .do-wrap { pointer-events: none; }
 .do-card {
-  background: rgba(8, 14, 24, 0.91);
+  background: var(--ov-bg);
   border: 1.5px solid var(--c, #3da9fc);
   border-radius: 9px;
   padding: 8px 11px 7px;
@@ -999,13 +1056,11 @@ th.fixed-col { z-index: 4; }
   display: flex; flex-direction: column; align-items: center;
 }
 .login-logo {
-  width: 54px; height: 54px; border-radius: 14px;
-  background: linear-gradient(135deg, #1a3a5c, #0d1f35);
-  border: 1px solid #2a4a6e;
+  width: 66px; height: 66px;
   display: grid; place-items: center;
   margin-bottom: 16px;
 }
-.login-logo svg { width: 28px; height: 28px; color: #3da9fc; }
+.login-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .login-title { font-size: 22px; font-weight: 700; color: #eaf6ff; margin-bottom: 4px; }
 .login-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 32px; text-align: center; }
 .login-form { width: 100%; display: flex; flex-direction: column; gap: 14px; }
@@ -1254,10 +1309,7 @@ th.fixed-col { z-index: 4; }
 .pd-wrap, .pf-wrap { animation: panelIn 0.22s cubic-bezier(0.22,1,0.36,1); }
 
 /* Login sahifa yaxshilash */
-.login-logo svg { animation: none; }
-.login-logo {
-  animation: logoPulse 3.5s ease-in-out infinite;
-}
+.login-logo, .login-logo img { animation: none; }
 .lf-btn { transition: background 0.15s, transform 0.1s; }
 .lf-btn:active { transform: scale(0.97); }
 

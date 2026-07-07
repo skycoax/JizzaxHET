@@ -119,16 +119,16 @@ export function LossesPanel({ devices }: { devices: Device[] }) {
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="TP ID yoki nom..." className="lt-inp"/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="TM ID yoki nom..." className="lt-inp"/>
             </div>
-            <span className="loss-count mono">{filtered.length} / {tps.length} ta TP</span>
+            <span className="loss-count mono">{filtered.length} / {tps.length} ta TM</span>
           </div>
 
           <div className="loss-table-wrap">
             <table className="loss-table">
               <thead>
                 <tr>
-                  <th>TP ID</th>
+                  <th>TM ID</th>
                   <th>Nomi</th>
                   <th>Tuman</th>
                   <th>Hisoblagich</th>

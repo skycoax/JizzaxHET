@@ -5,7 +5,7 @@ import { STATUS_META, TYPE_META, formatDuration, formatNumber, stripDistrict } f
 import { getStyle, type MapStyleKey } from './mapStyles';
 import { addDistrictLayers, tuneDistrictForStyle, updateDistrictColors } from './districtLayers';
 import { addDeviceLayers, applyDeviceFocus, devicesToFC, DEV_SRC, registerDeviceImages, tuneLabelsForStyle } from './deviceLayers';
-import { DistrictOverlayManager } from './districtOverlays';
+import { DistrictOverlayManager, HIDE_ZOOM } from './districtOverlays';
 import { playAlarmBeep } from '@/lib/sound';
 import { useCounter } from '@/hooks/useCounter';
 import { t } from '@/i18n';
@@ -19,11 +19,24 @@ const BEARING = -14;
 export type SitFocus = null | 'battery' | 'overload' | 'offline' | 'theft';
 const DEV_LAYERS = ['dev-tp', 'dev-biz', 'dev-house'] as const;
 
+/** Fokus turkumi bo'yicha TP ro'yxati (KPI hisoblash mantig'i bilan bir xil). */
+function devicesForFocus(devices: Device[], f: SitFocus): Device[] {
+  const tps = devices.filter(d => d.type === 'concentrator');
+  switch (f) {
+    case 'battery':  return tps.filter(d => d.onBattery && d.status !== 'offline');
+    case 'overload': return tps.filter(d => (d.loadPercent ?? 0) >= 90 && d.status !== 'offline');
+    case 'offline':  return tps.filter(d => d.status === 'offline');
+    case 'theft':    return tps.filter(d => d.theft);
+    default:         return [];
+  }
+}
+
 export function MapPanel({
   devices, districts, kpis, soundOn,
   selectedId, onSelect, active = true,
   showDistrictStats,
   onNewAlarm,
+  theme = 'dark',
 }: {
   devices: Device[]; districts: DistrictSummary[];
   kpis: DashboardKpis; soundOn: boolean;
@@ -32,6 +45,7 @@ export function MapPanel({
   active?: boolean;
   showDistrictStats: boolean;
   onNewAlarm?: (device: Device) => void;
+  theme?: 'dark' | 'light';
 }) {
   const containerRef  = useRef<HTMLDivElement>(null);
   const mapRef        = useRef<maplibregl.Map | null>(null);
@@ -48,9 +62,11 @@ export function MapPanel({
   const showStatsRef  = useRef(showDistrictStats);
   const onNewAlarmRef = useRef(onNewAlarm);
 
-  const [styleKey, setStyleKey] = useState<MapStyleKey>('cyber');
+  const [styleKey, setStyleKey] = useState<MapStyleKey>(theme === 'light' ? 'light' : 'cyber');
   const [is3D,     setIs3D    ] = useState(true);
   const [focus,    setFocus   ] = useState<SitFocus>(null);
+  const [legendOpen, setLegendOpen] = useState(false);
+  const firstThemeRun = useRef(true);
 
   selectRef.current    = onSelect;
   devicesRef.current   = devices;
@@ -69,7 +85,7 @@ export function MapPanel({
     if (mapRef.current || !containerRef.current) return;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: getStyle('cyber'),
+      style: getStyle(styleKeyRef.current),
       center: REGION_CENTER, zoom: REGION_ZOOM,
       pitch: PITCH_3D, bearing: BEARING,
       minZoom: 6, maxZoom: 19,
@@ -98,22 +114,24 @@ export function MapPanel({
     });
 
     map.on('click', (e) => {
+      // 1) Qurilma markeri ustiga bosildimi? → tanlash (detal kartasi ochiladi)
       const dF = map.queryRenderedFeatures(e.point, { layers: DEV_LAYERS as unknown as string[] });
       if (dF.length > 0) {
         const id = dF[0].properties?.id as string | undefined;
         if (id) { selectRef.current(id); return; }
       }
+      // 2) Qurilma emas — ochiq detal kartasini yopamiz
       selectRef.current(null);
-      if (map.getZoom() < HOUSEHOLD_ZOOM) {
+      // 3) Tuman ustiga bosildimi? → o'sha tuman statistikasi kartasini ochish/yopish
+      if (map.getZoom() <= HIDE_ZOOM) {
         const rF = map.queryRenderedFeatures(e.point, { layers: ['district-fill'] });
         if (rF.length > 0) {
           const app = rF[0].properties?.app as string | undefined;
-          if (app) {
-            const g = districtsRef.current.find(d => d.name === app);
-            if (g) map.flyTo({ center: [g.lng, g.lat], zoom: 10.8, duration: 800 });
-          }
+          if (app) { overlayMgrRef.current?.toggle(app); return; }
         }
       }
+      // 4) Bo'sh joyga bosildi → barcha ochiq tuman kartalarini yopamiz
+      overlayMgrRef.current?.clear();
     });
 
     map.on('mousemove', (e) => {
@@ -148,6 +166,13 @@ export function MapPanel({
     mapRef.current?.setStyle(getStyle(styleKey), { diff: false });
     // style.load da overlay menejer yo'q bo'lishi mumkin — qayta yaratiladi u yerda
   }, [styleKey]);
+
+  // Ilova mavzusi (dark/light) o'zgarganda — xarita uslubini avtomatik moslash.
+  // Birinchi renderni o'tkazib yuboramiz (uslub allaqachon to'g'ri tanlangan).
+  useEffect(() => {
+    if (firstThemeRun.current) { firstThemeRun.current = false; return; }
+    setStyleKey(theme === 'light' ? 'light' : 'cyber');
+  }, [theme]);
 
   useEffect(() => { mapRef.current?.easeTo({ pitch: is3D ? PITCH_3D : 0, duration: 600 }); }, [is3D]);
   useEffect(() => { if (active) requestAnimationFrame(() => mapRef.current?.resize()); }, [active]);
@@ -224,15 +249,14 @@ export function MapPanel({
     const next = focus === f ? null : f;
     setFocus(next);
     const map = mapRef.current;
-    if (!map) return;
-    if (next === 'offline') {
-      const off = devicesRef.current.filter(d => d.type === 'concentrator' && d.status === 'offline');
-      if (off.length > 0) {
-        const b = new maplibregl.LngLatBounds();
-        off.forEach(d => b.extend([d.lng, d.lat]));
-        map.fitBounds(b, { padding: 140, maxZoom: 11, duration: 900 });
-      }
-    } else if (next !== null) {
+    if (!map || next === null) return;
+    // Har qanday turkumga bosilganda — o'sha TP larni ko'rsatadigan ko'rinishga uchamiz
+    const list = devicesForFocus(devicesRef.current, next);
+    if (list.length > 0) {
+      const b = new maplibregl.LngLatBounds();
+      list.forEach(d => b.extend([d.lng, d.lat]));
+      map.fitBounds(b, { padding: 140, maxZoom: 12, duration: 900 });
+    } else {
       map.flyTo({ center: REGION_CENTER, zoom: REGION_ZOOM, duration: 700 });
     }
   };
@@ -240,13 +264,12 @@ export function MapPanel({
   const fitRegion = () =>
     mapRef.current?.flyTo({ center: REGION_CENTER, zoom: REGION_ZOOM, pitch: is3D ? PITCH_3D : 0, bearing: BEARING, duration: 900 });
 
-  const selected      = selectedId ? (devices.find(d => d.id === selectedId) ?? null) : null;
-  const offlineTpList = devices.filter(d => d.type === 'concentrator' && d.status === 'offline');
+  const selected = selectedId ? (devices.find(d => d.id === selectedId) ?? null) : null;
 
   return (
     <div className="map-wrap">
       <div ref={containerRef} className="map-root" />
-      <SituationHud kpis={kpis} focus={focus} onToggle={toggleFocus} offlineList={offlineTpList} onPick={onSelect}/>
+      <SituationHud kpis={kpis} focus={focus} onToggle={toggleFocus} devices={devices} onPick={onSelect}/>
       <div className="map-ctrl tr">
         <div className="map-seg">
           <button className={styleKey==='cyber' ?'on':''} onClick={() => setStyleKey('cyber')}>Cyber 3D</button>
@@ -269,20 +292,34 @@ export function MapPanel({
           </button>
         </div>
       </div>
-      <div className="map-legend">
-        <div className="lt">Holatlar</div>
-        <div className="li"><i style={{background:'var(--ok)'}}/> Ishlayapti</div>
-        <div className="li"><i style={{background:'var(--warn)'}}/> Ogohlantirish</div>
-        <div className="li"><i style={{background:'var(--fault)'}}/> Nosozlik</div>
-        <div className="li"><i style={{background:'var(--crit)'}}/> Aloqa yo'q</div>
-        <div className="lt" style={{marginTop:10}}>Qurilma turi</div>
-        <div className="li"><span className="lg-tp"/> TP konsentrator</div>
-        <div className="li"><span className="lg-biz"/> Tadbirkorlik</div>
-        <div className="li"><span className="lg-house"/> Maishiy (fuqaro)</div>
-        <div className="lt" style={{marginTop:10}}>Belgilar</div>
-        <div className="li"><span className="lg-bat"/> Batareya quvvatida</div>
-        <div className="li"><span className="lg-theft"/> O'g'irlik aniqlangan</div>
-        <div className="li"><span className="lg-ring"/> Yuklanish ≥ 90%</div>
+      <div className={`map-legend ${legendOpen ? 'open' : ''}`}>
+        <button className="legend-head" onClick={() => setLegendOpen(o => !o)} aria-expanded={legendOpen}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <circle cx="3.5" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="3.5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="3.5" cy="18" r="1.4" fill="currentColor" stroke="none"/>
+          </svg>
+          <span>Belgilar</span>
+          <svg className="legend-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
+        {legendOpen && (
+          <div className="legend-body">
+            <div className="lt">Holatlar</div>
+            <div className="li"><i style={{background:'var(--ok)'}}/> Ishlayapti</div>
+            <div className="li"><i style={{background:'var(--warn)'}}/> Ogohlantirish</div>
+            <div className="li"><i style={{background:'var(--fault)'}}/> Nosozlik</div>
+            <div className="li"><i style={{background:'var(--crit)'}}/> Aloqa yo'q</div>
+            <div className="lt" style={{marginTop:10}}>Qurilma turi</div>
+            <div className="li"><span className="lg-tp"/> TM konsentrator</div>
+            <div className="li"><span className="lg-biz"/> Tadbirkorlik</div>
+            <div className="li"><span className="lg-house"/> Maishiy (fuqaro)</div>
+            <div className="lt" style={{marginTop:10}}>Belgilar</div>
+            <div className="li"><span className="lg-bat"/> Batareya quvvatida</div>
+            <div className="li"><span className="lg-theft"/> O‘g‘irlik aniqlangan</div>
+            <div className="li"><span className="lg-ring"/> Yuklanish ≥ 90%</div>
+          </div>
+        )}
       </div>
       {selected && <DeviceDetailCard device={selected} onClose={() => onSelect(null)}/>}
     </div>
@@ -290,10 +327,12 @@ export function MapPanel({
 }
 
 /* ======================================================== */
-function SituationHud({ kpis, focus, onToggle, offlineList, onPick }: {
+function SituationHud({ kpis, focus, onToggle, devices, onPick }: {
   kpis: DashboardKpis; focus: SitFocus; onToggle:(f:SitFocus)=>void;
-  offlineList: Device[]; onPick:(id:string)=>void;
+  devices: Device[]; onPick:(id:string)=>void;
 }) {
+  const [open, setOpen] = useState(true);
+  const focusList = focus ? devicesForFocus(devices, focus) : [];
   const batteryCount  = useCounter(kpis.batteryTps);
   const overloadCount = useCounter(kpis.overloadedTps);
   const offlineCount  = useCounter(kpis.offlineTps);
@@ -305,35 +344,49 @@ function SituationHud({ kpis, focus, onToggle, offlineList, onPick }: {
       icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="7" width="16" height="10" rx="2"/><line x1="22" y1="10" x2="22" y2="14"/><line x1="6" y1="10" x2="9" y2="14"/><line x1="9" y1="10" x2="6" y2="14"/></svg> },
     { f:'overload', c:'#ff8c2f', n:overloadCount, label:t('sit.overload'),
       icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a9 9 0 0 1 9 9"/><path d="M21 12a9 9 0 1 1-9-9" opacity=".35"/><path d="m12 12 4-5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg> },
-    { f:'offline', c:'#ff4d57', n:offlineCount, sub:t('sit.locations'), label:t('sit.offline'),
+    { f:'offline', c:'#ff4d57', n:offlineCount, label:t('sit.offline'),
       icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/><line x1="12" y1="2" x2="12" y2="12"/></svg> },
     { f:'theft', c:'#b06bff', n:theftCount, label:t('sit.theft'),
       icon:<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3 3.5 7.5v5c0 4.6 3.6 7.6 8.5 8.5 4.9-.9 8.5-3.9 8.5-8.5v-5L12 3z"/><line x1="8" y1="9" x2="16" y2="15"/></svg> },
   ];
   return (
-    <div className="sit-hud">
-      <div className="sit-title">{t('sit.title')}</div>
-      {cards.map(card => (
-        <div key={card.f}>
-          <button className={`sit-card ${focus===card.f?'on':''}`} style={{'--c':card.c} as React.CSSProperties} onClick={() => onToggle(card.f)}>
-            <span className="ic">{card.icon}</span>
-            <span className="nm">
-              <span className="n mono"><span key={card.n} className="pop">{card.n}</span>{card.sub && <em>{card.sub}</em>}</span>
-              <span className="l">{card.label}</span>
-            </span>
-          </button>
-          {card.f==='offline' && focus==='offline' && offlineList.length>0 && (
-            <div className="sit-sub">
-              {offlineList.map(d => (
-                <div key={d.id} className="row" onClick={() => onPick(d.id)}>
-                  <span className="nm2"><i/> {d.id} · {d.name}</span>
-                  <span className="ds">{stripDistrict(d.district)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
+    <div className={`sit-hud${open ? '' : ' mini'}`}>
+      <button className="sit-toggle" onClick={() => setOpen(o => !o)} aria-expanded={open} title={open ? 'Yig‘ish' : 'Yoyish'}>
+        <span className="sit-toggle-lbl">{t('sit.title')}</span>
+        <svg className="sit-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="18 15 12 9 6 15"/>
+        </svg>
+      </button>
+      <div className="sit-cards">
+        {cards.map(card => (
+          <div key={card.f} className="sit-slot">
+            <button
+              className={`sit-card${focus===card.f?' on':''}${card.n===0?' zero':''}`}
+              style={{'--c':card.c} as React.CSSProperties}
+              onClick={() => onToggle(card.f)}
+              title={card.label}
+            >
+              <span className="ic">{card.icon}</span>
+              <span className="nm">
+                <span className="n mono"><span key={card.n} className="pop">{card.n}</span></span>
+                <span className="l">{card.label}</span>
+              </span>
+            </button>
+            {open && focus===card.f && (
+              <div className="sit-sub" style={{'--c':card.c} as React.CSSProperties}>
+                {focusList.length>0 ? focusList.map(d => (
+                  <div key={d.id} className="row" onClick={() => onPick(d.id)}>
+                    <span className="nm2"><i/> {d.id} · {d.name}</span>
+                    <span className="ds">{stripDistrict(d.district)}</span>
+                  </div>
+                )) : (
+                  <div className="sit-sub-empty">Ushbu turkumda TM yo‘q</div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -367,7 +420,7 @@ function DeviceDetailCard({ device, onClose }: { device:Device; onClose:()=>void
           <div className="row"><span className="k">Quvvat manbai</span><span className="v" style={{color:'#22d3ee'}}>Batareya (zaxira)</span></div>
         )}
         {device.theft && (
-          <div className="row"><span className="k">O'g'irlik</span><span className="v" style={{color:'#b06bff'}}>Aniqlangan</span></div>
+          <div className="row"><span className="k">O‘g‘irlik</span><span className="v" style={{color:'#b06bff'}}>Aniqlangan</span></div>
         )}
         {device.faultSince!==null && (
           <div className="row"><span className="k">Davomiyligi</span><span className="v" style={{color:meta.color}}>{formatDuration(device.faultSince)}</span></div>

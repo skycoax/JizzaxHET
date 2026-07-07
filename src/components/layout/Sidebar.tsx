@@ -11,7 +11,6 @@ import type { Theme } from '@/hooks/useTheme';
 export interface AppSettings {
   showDistrictStats: boolean;
   showNotifications: boolean;
-  autoFlyToAlarm: boolean;
 }
 
 const SYS: Record<SystemStatus, { label: string; color: string }> = {
@@ -26,8 +25,8 @@ const COLLAPSE_KEY = 'jhet-sidebar-collapsed';
 const I = {
   monitor: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a10 10 0 0 1 10 10"/><path d="M12 2a10 10 0 0 0-10 10" opacity=".35"/>
-      <path d="m12 12 4-5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+      <rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/>
+      <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/>
     </svg>
   ),
   readings: (
@@ -65,7 +64,7 @@ const I = {
   ),
 };
 
-type NavItem = { id: AppView; label: string; icon: JSX.Element; badge?: number };
+type NavItem = { id: AppView; label: string; icon: JSX.Element; badge?: number; badgeColor?: string };
 type NavGroup = { title: string; items: NavItem[] };
 
 interface Props {
@@ -133,7 +132,7 @@ export function Sidebar({
       items: [
         { id: 'monitor',  label: t('nav.monitor'),  icon: I.monitor },
         { id: 'events',   label: t('nav.events'),   icon: I.events, badge: alarmCount > 0 ? alarmCount : undefined },
-        { id: 'losses',   label: t('nav.losses'),   icon: I.losses, badge: theftCount > 0 ? theftCount : undefined },
+        { id: 'losses',   label: t('nav.losses'),   icon: I.losses, badge: theftCount > 0 ? theftCount : undefined, badgeColor: '#7c3aed' },
       ],
     },
     {
@@ -157,30 +156,22 @@ export function Sidebar({
   const roleLabel = user
     ? (user.role === 'admin' ? 'Administrator' : user.role === 'dispatcher' ? 'Dispetcher' : 'TETK')
     : 'Demo';
+  const displayName = demoMode ? 'Demo rejim' : (user?.full_name ?? '—');
+  // Rol nomi ism ichida takrorlansa ("Tizim administratori" + "Administrator") — ko'rsatmaymiz
+  const normTxt = (s: string) => s.toLowerCase().replace(/[^a-zа-яё0-9']/gi, '');
+  const showRole = !normTxt(displayName).includes(normTxt(roleLabel));
 
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`} data-theme="light">
       {/* Brend */}
       <div className="s-brand">
         <div className="s-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
+          <img src="/het-logo.png" alt="HET" draggable={false}/>
         </div>
         <div className="s-brand-text">
           <h1>JIZZAX HET</h1>
-          <p>Situatsion markaz</p>
+          <p>Vaziyat markazi</p>
         </div>
-        <button
-          className="s-collapse"
-          onClick={() => setCollapsed(c => !c)}
-          title={collapsed ? t('side.expand') : t('side.collapse')}
-          aria-label={collapsed ? t('side.expand') : t('side.collapse')}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-            <polyline points={collapsed ? '9 18 15 12 9 6' : '15 18 9 12 15 6'}/>
-          </svg>
-        </button>
       </div>
 
       {/* Navigatsiya */}
@@ -198,7 +189,7 @@ export function Sidebar({
                 <span className="s-ico">{item.icon}</span>
                 <span className="s-label">{item.label}</span>
                 {item.badge !== undefined && (
-                  <span key={item.badge} className="s-badge">{item.badge}</span>
+                  <span key={item.badge} className="s-badge" style={item.badgeColor ? { background: item.badgeColor } : undefined}>{item.badge}</span>
                 )}
               </button>
             ))}
@@ -208,24 +199,35 @@ export function Sidebar({
 
       <div className="s-spacer"/>
 
-      {/* Tizim holati + soat */}
+      {/* Tizim holati + vaqt — bitta karta */}
       <div className="s-status" title={`${t('topbar.systemStatus')}: ${sys.label}`}>
-        <span className="s-status-pill" style={{ background: sys.color }}/>
-        <div className="s-status-body">
-          <div className="s-status-lbl">{t('topbar.systemStatus')}</div>
-          <div className="s-status-val" style={{ color: sys.color }}>{sys.label}</div>
+        <div className="s-status-top">
+          <span className="s-status-lbl">{t('topbar.systemStatus')}</span>
+          <span className={`s-livetag${demoMode ? ' demo' : ''}`}>
+            <span className="s-livedot"/>{demoMode ? 'DEMO' : t('topbar.live')}
+          </span>
         </div>
-        <span className={`s-livetag${demoMode ? ' demo' : ''}`}>
-          <span className="s-livedot"/>{demoMode ? 'DEMO' : t('topbar.live')}
-        </span>
-      </div>
-      <div className="s-clock">
-        <span className="s-clock-t mono">{formatTime(now)}</span>
-        <span className="s-clock-d">{formatDateUz(now)}</span>
+        <div className="s-status-mid">
+          <span className="s-status-dot" style={{ background: sys.color }}/>
+          <span className="s-status-val" style={{ color: sys.color }}>{sys.label}</span>
+          <span className="s-status-time mono">{formatTime(now).slice(0, 5)}</span>
+        </div>
+        <div className="s-status-date">{formatDateUz(now)}</div>
       </div>
 
-      {/* Boshqaruv tugmalari */}
+      {/* Boshqaruv — bitta qator teng kvadratlar */}
       <div className="s-controls">
+        <button
+          className="s-ctrl"
+          onClick={() => setCollapsed(c => !c)}
+          title={collapsed ? t('side.expand') : t('side.collapse')}
+          aria-label={collapsed ? t('side.expand') : t('side.collapse')}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points={collapsed ? '9 18 15 12 9 6' : '15 18 9 12 15 6'}/>
+          </svg>
+        </button>
+
         <button
           className="s-ctrl"
           onClick={onToggleTheme}
@@ -242,7 +244,6 @@ export function Sidebar({
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
           )}
-          <span className="s-ctrl-label">{theme === 'dark' ? t('side.themeLight') : t('side.themeDark')}</span>
         </button>
 
         <button
@@ -262,7 +263,6 @@ export function Sidebar({
               <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
             </svg>
           )}
-          <span className="s-ctrl-label">{soundOn ? t('topbar.soundOn') : t('topbar.soundOff')}</span>
         </button>
 
         <button
@@ -275,7 +275,6 @@ export function Sidebar({
             <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
             <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
           </svg>
-          <span className="s-ctrl-label">{full ? t('topbar.exitFullscreen') : t('topbar.fullscreen')}</span>
         </button>
 
         <div className="s-ctrl-pop" ref={panelRef}>
@@ -289,15 +288,13 @@ export function Sidebar({
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
-            <span className="s-ctrl-label">{t('side.settings')}</span>
           </button>
           {panel && (
             <div className="settings-panel">
               <div className="sp-title">Xarita sozlamalari</div>
               {([
-                { key: 'showDistrictStats', label: 'Tuman statistikasi',       desc: 'Har tuman ustida TP va mavjudlik' },
-                { key: 'showNotifications', label: 'Avariya bildirimlari',      desc: 'Yangi nosozlik — darhol ogohlantirish' },
-                { key: 'autoFlyToAlarm',    label: "Xaritada avtomatik ko'rsatish", desc: 'Yangi avariyaga uchadi (faqat monitoringda)' },
+                { key: 'showDistrictStats', label: 'Tuman statistikasi',  desc: 'Tumanga bosilganda TM va mavjudlik kartasi' },
+                { key: 'showNotifications', label: 'Avariya bildirimlari', desc: 'Yangi nosozlik — darhol ogohlantirish' },
               ] as { key: keyof AppSettings; label: string; desc: string }[]).map(item => (
                 <label key={item.key} className="sp-row" onClick={() => setSetting(item.key)}>
                   <div className="sp-info">
@@ -312,15 +309,15 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Foydalanuvchi */}
+      {/* Foydalanuvchi + chiqish */}
       <div className="s-user">
         <span className={`s-ava${demoMode ? ' demo' : ''}`}>{userInitial}</span>
         <div className="s-user-body">
-          <div className="s-user-name">{demoMode ? 'Demo rejim' : (user?.full_name ?? '—')}</div>
-          <div className="s-user-role">{roleLabel}</div>
+          <div className="s-user-name">{displayName}</div>
+          {showRole && <div className="s-user-role">{roleLabel}</div>}
         </div>
         <button className="s-logout" onClick={onLogout} title="Chiqish" aria-label="Chiqish">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
             <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
           </svg>

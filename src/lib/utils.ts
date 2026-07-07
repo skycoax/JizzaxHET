@@ -10,7 +10,7 @@ export const STATUS_META: Record<DeviceStatus, { label: string; color: string }>
 
 /** Qurilma turi uchun nom. */
 export const TYPE_META: Record<DeviceType, { label: string; short: string }> = {
-  concentrator: { label: 'TP konsentrator', short: 'TP' },
+  concentrator: { label: 'TM konsentrator', short: 'TM' },
   household: { label: 'Maishiy hisoblagich', short: 'Maishiy' },
   business: { label: 'Tadbirkorlik obyekti', short: 'Biznes' },
 };

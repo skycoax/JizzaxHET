@@ -11,8 +11,10 @@ export type MapStyleKey = 'cyber' | 'sat' | 'light';
 // Harflar (gliflar) — faqat tuman nomlari uchun.
 const GLYPHS = 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf';
 
-const CARTO_DARK  = ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'];
-const CARTO_LIGHT = ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'];
+// Yorliqsiz (nolabels) bazaviy tayllar — OSM joy nomlari klasteri olib tashlanadi.
+// Xaritada faqat o'zimizning tuman/TM yorliqlarimiz qoladi → matn toza va o'qiladi.
+const CARTO_DARK  = ['https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png'];
+const CARTO_LIGHT = ['https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png'];
 const ESRI_SAT    = ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'];
 const ESRI_HYBRID = ['https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}'];
 

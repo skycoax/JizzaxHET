@@ -27,7 +27,7 @@ const uz: Record<string, string> = {
   "topbar.systemStatus": "Tizim holati",
 
   "table.district": "Tuman",
-  "table.tp": "TP",
+  "table.tp": "TM",
   "table.alarms": "Avr.",
   "table.availability": "Mavjudlik",
 
@@ -78,12 +78,12 @@ const uz: Record<string, string> = {
   "side.themeLight": "Kunduzgi rejim",
   "side.settings": "Sozlamalar",
 
-  "sit.title": "Situatsion kuzatuv",
-  "sit.battery": "Batareya quvvatidagi TP",
+  "sit.title": "Vaziyat monitoringi",
+  "sit.battery": "Batareya quvvatidagi TM",
   "sit.lines": "Faol liniyalar",
-  "sit.overload": "Yuklanish oshgan TP",
-  "sit.offline": "O'chgan TPlar",
-  "sit.theft": "O'g'irlik aniqlangan TP",
+  "sit.overload": "Yuklamasi oshgan TM",
+  "sit.offline": "O‘chgan TM",
+  "sit.theft": "O‘g‘irlik aniqlangan TM",
   "sit.locations": "joylashuvlar",
 };
 

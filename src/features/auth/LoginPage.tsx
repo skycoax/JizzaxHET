@@ -54,13 +54,10 @@ export function LoginPage({ defaultUrl, onLogin, onDemo }: Props) {
       <div className="login-card">
         {/* Logo */}
         <div className="login-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>
+          <img src="/het-logo.png" alt="HET" draggable={false}/>
         </div>
         <h1 className="login-title">Jizzax HET</h1>
-        <p className="login-sub">Situatsion dispetcherlik markazi</p>
+        <p className="login-sub">Vaziyat dispetcherlik markazi</p>
 
         <form className="login-form" onSubmit={submit}>
           <div className="lf-field">

@@ -10,9 +10,14 @@ for /f "tokens=5" %%p in ('netstat -aon 2^>nul ^| find ":8000 " ^| find "LISTENI
     echo [OK] Backend (port 8000) toxtatildi
 )
 
+for /f "tokens=5" %%p in ('netstat -aon 2^>nul ^| find ":5173 " ^| find "LISTENING"') do (
+    taskkill /PID %%p /F >nul 2>&1
+    echo [OK] Frontend dev (port 5173) toxtatildi
+)
+
 for /f "tokens=5" %%p in ('netstat -aon 2^>nul ^| find ":3000 " ^| find "LISTENING"') do (
     taskkill /PID %%p /F >nul 2>&1
-    echo [OK] Frontend (port 3000) toxtatildi
+    echo [OK] Frontend build (port 3000) toxtatildi
 )
 
 echo.

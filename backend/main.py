@@ -31,6 +31,15 @@ from scheduler import DataScheduler
 from telegram_bot import TelegramNotifier
 from ws_manager import manager as ws_manager
 
+# Windows konsoli (masalan cp1251) UTF-8 belgilarni chop eta olishi uchun —
+# aks holda banner/loglardagi maxsus belgilar UnicodeEncodeError beradi.
+import sys
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 logging.basicConfig(
     level=cfg.LOG_LEVEL,
     format="%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
