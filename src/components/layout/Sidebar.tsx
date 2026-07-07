@@ -162,7 +162,7 @@ export function Sidebar({
   const showRole = !normTxt(displayName).includes(normTxt(roleLabel));
 
   return (
-    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`} data-theme="light">
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       {/* Brend */}
       <div className="s-brand">
         <div className="s-logo">
